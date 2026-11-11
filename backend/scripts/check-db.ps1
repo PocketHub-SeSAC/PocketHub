@@ -3,8 +3,8 @@
   실행:  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-db.ps1
 
   하는 일
-    1) 테이블 8개 DESCRIBE
-    2) 테이블 개수 + 기본값 확인 (tasks.status=TODO, tasks.priority=MEDIUM, pull_requests.state=OPEN)
+    1) 테이블 9개 DESCRIBE
+    2) 테이블 개수 + 기본값 확인 (task.status=TODO, task.priority=MEDIUM, pr.state=OPEN)
     3) ./gradlew bootRun 으로 DB 연결까지 기동되는지 확인 후 종료
 
   비밀번호 처리
@@ -20,7 +20,7 @@ $ErrorActionPreference = 'Continue'
 $Root    = Split-Path -Parent $PSScriptRoot
 $MySql   = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe'
 $DbUser  = 'root'
-$Tables  = 'users', 'repositories', 'collaborators', 'tasks', 'pull_requests', 'commits', 'files', 'reviews'
+$Tables  = 'user', 'repository', 'collaborator', 'task', 'pr', 'commit', 'file', 'review', 'refresh_token'
 $BootTimeoutSec = 240
 
 function Hide([string]$s) {
@@ -73,21 +73,21 @@ try {
   Write-Host "`n## 1. 테이블 DESCRIBE"
   foreach ($t in $Tables) {
     Write-Host "`n### $t"
-    [void](Invoke-Sql "DESCRIBE $t;")
+    [void](Invoke-Sql "DESCRIBE ``$t``;")   # user·commit·file 은 예약어라 백틱으로 감싼다
   }
 
   # ---------- 2. 테이블 개수 · 기본값 ----------
   Write-Host "`n## 2. 테이블 개수 · 기본값"
   $inList = ($Tables | ForEach-Object { "'$_'" }) -join ','
   [void](Invoke-Sql @"
-SELECT COUNT(*) AS found_tables, 8 AS expected
+SELECT COUNT(*) AS found_tables, $($Tables.Count) AS expected
   FROM information_schema.TABLES
  WHERE TABLE_SCHEMA = 'pockethub' AND TABLE_NAME IN ($inList);
 SELECT c.TABLE_NAME, c.COLUMN_NAME, c.COLUMN_DEFAULT AS actual, e.expected,
        IF(c.COLUMN_DEFAULT <=> e.expected, 'OK', 'NG') AS result
-  FROM (SELECT 'tasks' AS t, 'status' AS col, 'TODO' AS expected
-        UNION ALL SELECT 'tasks', 'priority', 'MEDIUM'
-        UNION ALL SELECT 'pull_requests', 'state', 'OPEN') e
+  FROM (SELECT 'task' AS t, 'status' AS col, 'TODO' AS expected
+        UNION ALL SELECT 'task', 'priority', 'MEDIUM'
+        UNION ALL SELECT 'pr', 'state', 'OPEN') e
   LEFT JOIN information_schema.COLUMNS c
     ON c.TABLE_SCHEMA = 'pockethub' AND c.TABLE_NAME = e.t AND c.COLUMN_NAME = e.col
  ORDER BY e.t, e.col;

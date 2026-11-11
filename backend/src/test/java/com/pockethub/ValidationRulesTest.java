@@ -1,5 +1,6 @@
 package com.pockethub;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.pockethub.common.validation.ValidationRules;
@@ -11,5 +12,11 @@ class ValidationRulesTest {
     @Test
     void passwordRange() {
         assertTrue(ValidationRules.PASSWORD_MIN <= ValidationRules.PASSWORD_MAX);
+    }
+
+    @Test
+    void repoDescriptionMatchesColumn() {
+        // repository.description VARCHAR(1000)
+        assertEquals(1000, ValidationRules.REPO_DESCRIPTION_MAX);
     }
 }

@@ -19,6 +19,7 @@ public final class ValidationRules {
 
     // 팀(저장소)
     public static final int REPO_NAME_MAX = 45;
+    public static final int REPO_DESCRIPTION_MAX = 1000;
 
     // Task
     public static final int TASK_TITLE_MAX = 100;
