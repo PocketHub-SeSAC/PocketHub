@@ -3,7 +3,7 @@
 포켓헙 백엔드 뼈대. 아직 API·엔티티·공통 응답·인증·예외 처리는 없음 (별도 작업).
 
 ## 기술
-Java 17 · Spring Boot 3.5 · Gradle · MySQL 8 · Spring Data JPA · Validation · Lombok · spring-security-crypto(BCrypt 전용)
+Java 21 · Spring Boot 3.5 · Gradle · MySQL 8 · Spring Data JPA · Validation · Lombok · spring-security-crypto(BCrypt 전용)
 
 ## 구조
 ```
@@ -13,6 +13,10 @@ src/main/java/com/pockethub
      └─ controller · service · repository · domain · dto
 db/schema.sql      MySQL 에서 직접 실행 (앱이 자동 실행하지 않음)
 ```
+
+## 요구사항
+- **JDK 21** (빌드는 Gradle toolchain 으로 Java 21 을 사용. PC 에 JDK 21 이 없으면 빌드가 실패함)
+- MySQL 8
 
 ## 로컬 실행
 1. DB 만들기 + 스키마 실행
