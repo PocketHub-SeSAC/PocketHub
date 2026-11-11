@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: pockethub-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/pockethub?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none        # 스키마는 db/schema.sql 을 MySQL 에서 직접 실행
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Seoul
+  sql:
+    init:
+      mode: never
+  jackson:
+    time-zone: Asia/Seoul
+
+# 업로드 설정: 팀에서 값 확정 후 채움
+upload:
+  max-size:            # TODO: 파일 1개 최대 크기 (예: 10MB)
+  allowed-extensions:  # TODO: 허용 확장자 목록
