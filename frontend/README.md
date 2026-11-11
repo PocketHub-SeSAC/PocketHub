@@ -132,5 +132,3 @@ npm run build      # dist/ 생성 (Vercel 배포 시 vercel.json 이 모든 주�
 ## 범위 밖 (만들지 않음)
 
 실제 Git 연동, Clone/Push, 브랜치, 코드 Diff, 실제 Merge/충돌 해결, CI/CD, 팀 탈퇴.
-
-`legacy/` 에는 이전 단일 HTML 목업(v1 원본, 빌드 스크립트, 캡처)이 보관돼 있습니다. 디자인 기준이었던 v5 는 `Documents\pockethub-deploy\index.html` 입니다.
