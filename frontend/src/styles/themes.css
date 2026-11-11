@@ -1,0 +1,145 @@
+/* =========================================================
+   테마: 색은 전부 여기서만 정한다.
+   - :root            = 기본 테마 (v5 색 그대로)
+   - [data-theme=dark] / [data-theme=pink] = 같은 변수 이름에 값만 바꾼다
+   컴포넌트 CSS(base.css 등)에는 색 값을 직접 쓰지 않고 var(--…)만 쓴다.
+   ========================================================= */
+:root {
+  --service-name: "POKETHUB";
+
+  --bg: #f4efe0;          /* 배경 */
+  --ink: #2b2b2b;         /* 글자·테두리·그림자, 진한 면(머리띠·진한 버튼) */
+  --ink-soft: #5f5f5f;    /* 보조 글자 */
+  --ink-deep: #111111;    /* 진한 버튼 그림자 */
+  --on-ink: #f4efe0;      /* 진한 면 위 글자 */
+
+  --paper: #fffcf3;       /* 카드 안쪽 면 */
+  --tint: #e6dfcb;        /* 옅은 면·패턴 */
+  --mid: #b3ab98;         /* 장식선 */
+
+  --ok: #28863a;          /* 승인 (v5 #2f9e44 를 15% 진하게: 흰 글자 대비 4.6:1) */
+  --ok-text: #ffffff;     /* 승인 버튼 글자 */
+  --ok-shade: #1a6a2b;    /* 승인 버튼 그림자 */
+  --danger: #d94141;      /* 거부·에러 테두리 */
+  --danger-ink: #a72b2b;  /* 거부·에러 글자 */
+  --danger-shade: #f0c9c2;/* 거부 버튼 그림자 */
+  --alert-bg: #fbe3df;    /* 오류 안내 바탕 */
+  --hl: #f5c518;          /* 강조 */
+  --link: #275fb8;        /* 링크·선택 (v5 #2d6fd6 를 14% 진하게: 배경 대비 5.3:1) */
+
+  --hatch: rgba(43, 43, 43, .16);   /* 빗금 무늬 */
+  --scrim: rgba(43, 43, 43, .5);    /* 모달 뒤 어둡게 */
+  --scrim-dot: rgba(43, 43, 43, .45);
+  --toast-shadow: rgba(0, 0, 0, .35);
+  --dev-line: #555555;    /* ?dev 조작판 */
+  --dev-soft: #cfc9b6;
+  --dev-border: #9a9484;
+
+  /* PR 포스트잇 */
+  --wait-bg: #fff1a8; --wait-bar: #f5c518; --wait-flap: #e3c94a;
+  --ok-bg: #d3eed6;   --ok-bar: #2f9e44;   --ok-flap: #9fd3a6;
+  --end-bg: #e5dfcf;  --end-bar: #b3ab98;  --end-flap: #c9c2ad;
+  /* Task 포스트잇 */
+  --note-ink: #2b2b2b;    /* 포스트잇 위 글자 */
+  --note-todo: #f5c518; --note-doing: #ff8fab; --note-done: #7fd1f0;
+  --todo-flap: #c99f06; --doing-flap: #dd6a89; --done-flap: #4fb0d6;
+
+  /* PR 알림 배지·결과 점 */
+  --noti-bg: #c62f2f; --noti-text: #ffffff; --noti-dot: #c62f2f;
+
+  /* 테마 선택 네모: 테마와 상관없이 늘 같은 색 */
+  --swatch-default: #f5c518;
+  --swatch-dark: #26262b;
+  --swatch-pink: #ff8fab;
+
+  --b: 3px;
+  /* 폰트는 이 두 변수로만 관리한다
+     --font-pixel : 제목 성격의 글자 — 로고, 화면 제목, 메뉴·탭, 버튼, 패널·카드 제목, 입력칸 라벨
+                    (Galmuri11 이 한글·영문을 같은 도트 톤으로 그림. 로고를 Press Start 2P 로 되돌리려면 순서만 바꾸면 됨)
+     --font-body  : 실제로 읽는 내용 — 본문, 목록 내용, 표 값, 입력창, 배지, 안내 문구 (최소 14px) */
+  --font-pixel: "Galmuri11", "Galmuri9", "Press Start 2P", ui-monospace, monospace;
+  --font-body: "Pretendard", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color-scheme: light;
+}
+
+/* ---------- 다크 ----------
+   배경은 짙은 회색(순수 검정 없음), 카드·모달·패널·입력창은 한 단계 밝게.
+   --ink 는 글자이자 3px 테두리·그림자·도트 아이콘 색 → 밝은 회색으로 또렷하게.
+   포스트잇·상태 색은 채도를 낮춘 차분한 톤 (글자 대비는 모두 4.5:1 이상) */
+html[data-theme="dark"] {
+  --bg: #1f2024;          /* 배경: 짙은 회색 */
+  --paper: #2b2d33;       /* 카드·모달·패널·입력창: 배경보다 한 단계 밝게 */
+  --tint: #3a3d45;        /* 옅은 면(입력창 안쪽 그림자·종료 배지) */
+  --mid: #787c86;         /* 장식선 */
+  --ink: #e2e0da;         /* 본문 글자 + 테두리·그림자·아이콘: 흰색보다 살짝 낮춘 밝은 회색 */
+  --ink-soft: #a8acb4;    /* 보조 글자: 배경 7.2:1, 카드 6.1:1 */
+  --ink-deep: #f2f1ed;    /* 진한 버튼 그림자 */
+  --on-ink: #1f2024;      /* 밝은 면(머리띠·진한 버튼) 위 글자 */
+
+  --ok: #5a9c6a;          /* 승인: 채도 낮춘 초록 */
+  --ok-text: #13180f;
+  --ok-shade: #457a52;
+  --danger: #d97c7c;
+  --danger-ink: #efa5a1;
+  --danger-shade: #4a3033;
+  --alert-bg: #3b2b2e;
+  --hl: #6b5a2c;          /* 강조: 밝은 글자와 겹쳐도 읽히는 낮은 채도 금색 */
+  --link: #8db3ea;
+
+  --hatch: rgba(226, 224, 218, .18);
+  --scrim: rgba(18, 19, 22, .62);
+  --scrim-dot: rgba(18, 19, 22, .5);
+  --toast-shadow: rgba(18, 19, 22, .6);
+  --dev-line: #474a52;
+  --dev-soft: #4c4f57;
+  --dev-border: #787c86;
+
+  --wait-bg: #4a4432; --wait-bar: #b39a4a; --wait-flap: #5e5640;
+  --ok-bg: #30443a;   --ok-bar: #5a9c6a;   --ok-flap: #3e5649;
+  --end-bg: #393a3f;  --end-bar: #787c86;  --end-flap: #4a4c52;
+  --note-ink: #ece9e2;
+  --note-todo: #5c5434; --note-doing: #5c3e48; --note-done: #34525c;
+  --todo-flap: #47412a; --doing-flap: #472f37; --done-flap: #283f47;
+  --noti-bg: #e8908a; --noti-text: #1f2024; --noti-dot: #f0b45c;
+  color-scheme: dark;
+}
+
+/* ---------- 핑크 ---------- */
+html[data-theme="pink"] {
+  --bg: #fdecf2;
+  --ink: #3d1f2c;
+  --ink-soft: #7a5263;
+  --ink-deep: #210f17;
+  --on-ink: #fff3f7;
+
+  --paper: #fff8fb;
+  --tint: #f7d3e0;
+  --mid: #d9a4b8;
+
+  --ok: #237a40;
+  --ok-text: #ffffff;
+  --ok-shade: #18592d;
+  --danger: #d1304f;
+  --danger-ink: #a3203c;
+  --danger-shade: #f6c4cf;
+  --alert-bg: #ffe0e7;
+  --hl: #ff6fa2;
+  --link: #7b2cbf;
+
+  --hatch: rgba(61, 31, 44, .16);
+  --scrim: rgba(61, 31, 44, .5);
+  --scrim-dot: rgba(61, 31, 44, .45);
+  --toast-shadow: rgba(33, 15, 23, .35);
+  --dev-line: #6e4a58;
+  --dev-soft: #f2c9d8;
+  --dev-border: #b07f92;
+
+  --wait-bg: #ffe8f0; --wait-bar: #ff6fa2; --wait-flap: #f3a9c3;
+  --ok-bg: #dff3e3;   --ok-bar: #2b8a4b;   --ok-flap: #a6d8b2;
+  --end-bg: #efe2e7;  --end-bar: #d9a4b8;  --end-flap: #e4c3cf;
+  --note-ink: #3d1f2c;
+  --note-todo: #ffd36e; --note-doing: #ff9ebd; --note-done: #c3b4ff;
+  --todo-flap: #d9a832; --doing-flap: #e06b93; --done-flap: #9580e8;
+  --noti-bg: #a3203c; --noti-text: #ffffff; --noti-dot: #7b2cbf;
+  color-scheme: light;
+}

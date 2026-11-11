@@ -1,0 +1,5 @@
+# 팀원마다 OS가 달라도 줄바꿈은 LF 로 통일
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.zip binary
