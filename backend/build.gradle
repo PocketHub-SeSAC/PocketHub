@@ -7,17 +7,6 @@ plugins {
 group = 'com.pockethub'
 version = '0.0.1-SNAPSHOT'
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-}
-
-// JDK 17 이상이면 어느 버전으로 빌드해도 Java 17 바이트코드로 맞춘다
-tasks.withType(JavaCompile).configureEach {
-    options.release = 17
-    options.encoding = 'UTF-8'
-}
-
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
