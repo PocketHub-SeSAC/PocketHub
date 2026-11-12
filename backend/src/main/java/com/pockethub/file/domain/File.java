@@ -1,7 +1,9 @@
 package com.pockethub.file.domain;
 
+import com.pockethub.file.dto.FileDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "file")
@@ -14,28 +16,27 @@ public class File {
     private String filePath;
     @Column(nullable = false)
     private String originalName;
-    @Column(nullable = false)
-    private String savedName;
     // TODO : enum 으로 변경
     @Column(nullable = false)
     private String state;
     @Column(nullable = false)
     private Float size;
+    @Setter
     @Column(nullable = false)
     private Boolean isLatest;
     @Column(nullable = false)
     private long repoId;
-    @Column(nullable = false)
-    private long commitId;
+    @Column
+    private String commitId;
+    @Setter
     @Column
     private Long prevId;
 
     protected File() { }
 
-    public File(String filePath, String originalName, String savedName, String state, Float size, Boolean isLatest, long repoId, long commitId, Long prevId) {
+    public File(String filePath, String originalName, String state, Float size, Boolean isLatest, long repoId, String commitId, Long prevId) {
         this.filePath = filePath;
         this.originalName = originalName;
-        this.savedName = savedName;
         this.state = state;
         if(size != null)
             this.size = size;
@@ -45,5 +46,16 @@ public class File {
         this.commitId = commitId;
         if(prevId != null)
             this.prevId = prevId;
+    }
+
+    public File(FileDTO dto) {
+        this.filePath = dto.getFilePath();
+        this.originalName = dto.getOriginalName();
+        this.state = dto.getState();
+        this.size = dto.getSize();
+        this.isLatest = dto.getIsLatest();
+        this.repoId = dto.getRepoId();
+        this.commitId = dto.getCommitId();
+        this.prevId = dto.getPrevId();
     }
 }

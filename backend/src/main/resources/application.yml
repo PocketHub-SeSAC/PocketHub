@@ -22,8 +22,13 @@ spring:
       mode: never
   jackson:
     time-zone: Asia/Seoul
+  servlet:
+    multipart:
+      max-file-size: 10MB # 파일 하나 최대 업로드 크기
+      max-request-size: 50MB # multipart 요청 최대 크기
 
 # 업로드 설정: 팀에서 값 확정 후 채움
 upload:
-  max-size:            # TODO: 파일 1개 최대 크기 (예: 10MB)
-  allowed-extensions:  # TODO: 허용 확장자 목록
+  dir: uploads
+#  max-size:            # TODO: 파일 1개 최대 크기 (예: 10MB)
+#  allowed-extensions:  # TODO: 허용 확장자 목록
