@@ -1,13 +1,15 @@
-/* [담당 5] PR 알림 배지 (Could) — 별도 알림 API 없이 기존 PR 목록 API(API-030)로 계산
-   - review : 그 팀에서 내가 리뷰어로 지정된 "리뷰 대기" PR 수 → 팀 메뉴 PR 탭 숫자 배지
+'use client';
+/* [담당 5] PR 알림 배지 (Could) — 별도 알림 API 없이 기존 PR 목록 API(API-030)로 계산 */
+
+/* - review : 그 팀에서 내가 리뷰어로 지정된 "리뷰 대기" PR 수 → 팀 메뉴 PR 탭 숫자 배지
    - decided: 내가 만든 PR 중 승인·거부된 것 가운데 아직 PR 탭에서 확인 안 한 것 → 작은 점(●)
               확인 기록은 localStorage 에 PR 별로 (pockethub.prSeen.<내 id>)
    - 화면을 옮길 때와 30초마다 다시 불러온다 */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { getTeams } from '../../api/teams';
-import { getPulls } from '../../api/pulls';
-import { useAuth } from '../../auth/AuthContext';
+import { usePathname } from 'next/navigation';
+import { getTeams } from '@/services/teams';
+import { getPulls } from '@/services/pulls';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 const POLL_MS = 30_000;
 const NotiCtx = createContext({ byTeam: {}, total: 0, refresh: () => {}, markSeen: () => {} });
@@ -22,7 +24,7 @@ function writeSeen(userId, ids) {
 
 export function PrNotiProvider({ children }) {
   const { user } = useAuth();
-  const location = useLocation();
+  const pathname = usePathname();
   const [byTeam, setByTeam] = useState({});
   const busy = useRef(false);
   const userId = user?.id;
@@ -46,7 +48,7 @@ export function PrNotiProvider({ children }) {
   }, [userId]);
 
   // 화면 이동 시 + 30초마다
-  useEffect(() => { refresh(); }, [refresh, location.pathname]);
+  useEffect(() => { refresh(); }, [refresh, pathname]);
   useEffect(() => {
     if (!userId) return undefined;
     const t = setInterval(refresh, POLL_MS);
@@ -77,8 +79,8 @@ export function NotiBadge({ n = 0, dot = false, className = '' }) {
   if (!n && !dot) return null;
   return (
     <span className={`nbadge-wrap ${className}`}>
-      {n > 0 && <span className="nbadge" aria-label={`리뷰할 PR ${n}건`}>{n > 99 ? '99+' : n}</span>}
-      {dot && <span className="ndot" role="img" aria-label="내 PR에 새 결과가 있어요">●</span>}
+      {n > 0 && <span className='nbadge' aria-label={`리뷰할 PR ${n}건`}>{n > 99 ? '99+' : n}</span>}
+      {dot && <span className='ndot' role='img' aria-label='내 PR에 새 결과가 있어요'>●</span>}
     </span>
   );
 }
