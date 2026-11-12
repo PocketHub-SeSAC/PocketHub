@@ -1,3 +1,5 @@
+'use client';
+/* 화면 아래 알림(toast). const toast = useToast(); toast('저장했어요') */
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 
 const ToastCtx = createContext(() => {});
@@ -13,7 +15,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastCtx.Provider value={show}>
       {children}
-      <div className="toast" id="toast" role="status" aria-live="polite" hidden={!msg}>{msg}</div>
+      <div className='toast' id='toast' role='status' aria-live='polite' hidden={!msg}>{msg}</div>
     </ToastCtx.Provider>
   );
 }

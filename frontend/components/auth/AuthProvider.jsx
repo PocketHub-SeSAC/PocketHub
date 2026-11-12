@@ -1,8 +1,9 @@
+'use client';
+/* 로그인 상태를 화면 전체에 나눠 주는 Provider. 시작할 때 토큰이 있으면 내 정보(API-002)로 확인한다 */
 import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import * as authApi from '../api/auth';
-import { getToken, setToken, clearToken } from '../api/token';
+import * as authApi from '@/services/auth';
+import { getToken, setToken, clearToken } from '@/services/token';
 
-/* 로그인 상태. 시작할 때 토큰이 있으면 내 정보(API-002)로 확인한다 */
 const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -37,7 +38,7 @@ export function AuthProvider({ children }) {
     // 응답을 기다리다 페이지를 떠나도 토큰이 남지 않게.
     const pending = authApi.logout().catch(() => { /* 토큰이 이미 만료돼도 로그아웃은 진행 */ });
     clearToken();
-    // 라우터 이동(navigate)도 transition 이라, 같은 transition 으로 묶어야
+    // 라우터 이동(router.push)도 transition 이라, 같은 transition 으로 묶어야
     // "메인으로 이동"보다 "로그인 풀림"이 먼저 그려져 보호 화면이 가로채는 일이 없다
     startTransition(() => setState({ ready: true, user: null, error: null }));
     await pending;
