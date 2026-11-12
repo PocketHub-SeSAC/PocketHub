@@ -85,6 +85,27 @@ public class FileService {
         return info;
     }
 
+    @Transactional
+    public FileDTO deleteFile(long repoId, String commitId, long fileId) {
+        File prevFile = fileRepository.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException("삭제하려는 파일이 존재하지 않습니다."));
+        if(!prevFile.getIsLatest()) {
+            throw new IllegalArgumentException("삭제하려는 파일이 최신 파일이 아닙니다. 최신 파일을 선택해주세요.");
+        }
+        if(prevFile.getState().equals(FileState.DELETE)) {
+            throw new IllegalArgumentException("삭제하려는 파일은 이미 삭제되어 있습니다.");
+        }
+
+        prevFile.setIsLatest(false);
+
+        FileDTO dto = new FileDTO(prevFile.getOriginalName(), "", commitId, repoId, 0);
+        dto.setIsLatest(true);
+        dto.setPrevId(prevFile.getFileId());
+        dto.setState(FileState.DELETE);
+
+        return dto;
+    }
+
     // 커밋 실패 시, 이미 저장된 파일을 커밋 폴더 채로 정리
     // 파일 경로 : /{repositoryId}/{commitId}/{저장 파일명}
     public void cleanupSavedFiles(long repoId, String commitId, Exception originalException) {
