@@ -1,5 +1,6 @@
 package com.pockethub.file.dto;
 
+import com.pockethub.commit.dto.FileState;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,7 +13,7 @@ public class FileDTO {
     private String commitId;
     private long repoId;
     private float size;
-    private String state;
+    private FileState state;
     private Long prevId;
     private Boolean isLatest;
 

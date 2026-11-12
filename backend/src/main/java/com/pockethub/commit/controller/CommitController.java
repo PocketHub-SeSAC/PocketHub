@@ -22,12 +22,11 @@ public class CommitController {
     // 업로드 커밋 2. 업로드한 파일을 정보와 함께 커밋 메세지 등록 (파일 DB, 커밋 DB 여기서 다 등록)
     @PostMapping
     public ResponseEntity<CommitDTO> uploadCommit(
-            Authentication authentication
+            Authentication authentication // 테스트할 때는 임시로 userId 부분에 1 을 넣는다
             , @PathVariable("teamId") long repoId
             , @RequestParam("files") List<MultipartFile> files
             , @RequestParam("commitMessage") String commitMessage
             ) {
-
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commitService.uploadCommit(Long.valueOf(authentication.getName()), repoId, files, commitMessage)
         );

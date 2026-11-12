@@ -101,7 +101,7 @@ CREATE TABLE `file` (
   state         VARCHAR(45)   NOT NULL,                -- ADD, UPDATE, DELETE
   repo_id       BIGINT        NOT NULL,
   size          FLOAT         NOT NULL DEFAULT 0,      -- KB 단위
-  commit_id     VARCHAR(45)   NULL,
+  commit_id     VARCHAR(45)   NOT NULL,
   is_latest     TINYINT(1)    NOT NULL DEFAULT 0,
   prev_id       BIGINT        NULL,                    -- UPDATE/DELETE 파일의 이전 상태 파일
   PRIMARY KEY (file_id),

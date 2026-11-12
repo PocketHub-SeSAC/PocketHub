@@ -1,5 +1,6 @@
 package com.pockethub.file.domain;
 
+import com.pockethub.commit.dto.FileState;
 import com.pockethub.file.dto.FileDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -16,9 +17,9 @@ public class File {
     private String filePath;
     @Column(nullable = false)
     private String originalName;
-    // TODO : enum 으로 변경
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String state;
+    private FileState state;
     @Column(nullable = false)
     private Float size;
     @Setter
@@ -34,7 +35,7 @@ public class File {
 
     protected File() { }
 
-    public File(String filePath, String originalName, String state, Float size, Boolean isLatest, long repoId, String commitId, Long prevId) {
+    public File(String filePath, String originalName, FileState state, Float size, Boolean isLatest, long repoId, String commitId, Long prevId) {
         this.filePath = filePath;
         this.originalName = originalName;
         this.state = state;

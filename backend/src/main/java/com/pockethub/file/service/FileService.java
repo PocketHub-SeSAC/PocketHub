@@ -1,5 +1,6 @@
 package com.pockethub.file.service;
 
+import com.pockethub.commit.dto.FileState;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.repository.FileRepository;
@@ -14,7 +15,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 public class FileService {
@@ -73,9 +76,10 @@ public class FileService {
         info.setIsLatest(true);
         if(prevFile != null) {
             prevFile.setIsLatest(false);
-            info.setState("UPDATE");
+            info.setState(FileState.UPDATE);
+            info.setPrevId(prevFile.getFileId());
         } else {
-            info.setState("ADD");
+            info.setState(FileState.ADD);
         }
 
         return info;
@@ -86,7 +90,15 @@ public class FileService {
     public void cleanupSavedFiles(long repoId, String commitId, Exception originalException) {
         Path savedPath = uploadRoot.resolve(String.valueOf(repoId)).resolve(commitId).normalize();
 
-        try {
+        try(Stream<Path> walk = Files.walk(savedPath)) {
+            walk.sorted(Comparator.reverseOrder())
+                            .forEach(p -> {
+                                try {
+                                    Files.deleteIfExists(p);
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
             Files.deleteIfExists(savedPath);
         } catch (IOException e) {
             originalException.addSuppressed(e);

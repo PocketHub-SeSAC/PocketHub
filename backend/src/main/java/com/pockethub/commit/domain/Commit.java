@@ -4,6 +4,8 @@ import com.pockethub.file.domain.File;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,14 +13,14 @@ import java.util.List;
 
 @Entity
 @Table(name = "commit")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 public class Commit {
     @Id
     private String commitId;
     @Column(nullable = false)
     private String message;
-    // auditing 사용하여 @CreatedDate 사용할 것인가 - 일단 디폴트값을 넣어줬음
-    @Column(nullable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
     @Column(nullable = false)
     private long repoId;
@@ -29,7 +31,7 @@ public class Commit {
     private long userId;
     @Setter
     @Column
-    private long prId;
+    private Long prId;
 
     @OneToMany(mappedBy = "commitId", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<File> files = new ArrayList<>();
