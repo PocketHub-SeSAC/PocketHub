@@ -1,16 +1,12 @@
-/* =========================================================
-   브라우저 안 가짜 서버.
-   api/client.js 가 VITE_USE_MOCK=true 일 때 route.key 로 여기 핸들러를 찾는다.
-   (경로 문자열은 api/*.js 에만 있다)
-   응답은 { success, data, message } 껍데기로 감싸서 adapter.unwrap 이 벗기게 한다.
-   ========================================================= */
+/* 브라우저 안 가짜 서버. services/client.js 가 NEXT_PUBLIC_USE_MOCK=true 일 때 route.key 로 핸들러를 찾는다.
+   (경로 문자열은 services/*.js 에만 있다) */
 import { getDb, saveDb } from './db';
 import { MockHttpError } from './util';
-import { handlers as auth } from './handlers/auth';
-import { handlers as teams } from './handlers/teams';
-import { handlers as files } from './handlers/files';
-import { handlers as tasks } from './handlers/tasks';
-import { handlers as pulls } from './handlers/pulls';
+import { handlers as auth } from '@/mocks/handlers/auth';
+import { handlers as teams } from '@/mocks/handlers/teams';
+import { handlers as files } from '@/mocks/handlers/files';
+import { handlers as tasks } from '@/mocks/handlers/tasks';
+import { handlers as pulls } from '@/mocks/handlers/pulls';
 
 const HANDLERS = { ...auth, ...teams, ...files, ...tasks, ...pulls };
 
@@ -35,6 +31,7 @@ function userFromToken(db, authHeader) {
   return userId ? db.users.find((u) => u.id === userId) || null : null;
 }
 
+// 응답은 { success, data, message } 껍데기로 감싸서 adapter.unwrap 이 벗기게 한다
 export async function mockFetch(route, req) {
   const flags = getDevFlags();
   await wait(flags.latency);

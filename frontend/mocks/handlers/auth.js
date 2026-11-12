@@ -1,7 +1,7 @@
 /* [담당 1] 목업: 회원·인증 */
-import { nextId } from '../db';
-import { fail, ok, created, noContent, publicUser, str, EMAIL_RE } from '../util';
-import { PROFILE_ICON_KEYS } from '../../config/profileIcons';
+import { nextId } from '@/mocks/db';
+import { fail, ok, created, noContent, publicUser, str, EMAIL_RE } from '@/mocks/util';
+import { PROFILE_ICON_KEYS } from '@/utils/profileIcons';
 
 export const handlers = {
   'auth.signup': ({ db, body }) => {

@@ -1,10 +1,11 @@
-/* [담당 5] 목업: PR·리뷰
-   - 생성: 내 커밋 중 PR 에 안 묶인 커밋 1개 이상, 리뷰어는 본인 뺀 팀원 1명 이상, Task 1개 → 바로 리뷰 대기
+/* [담당 5] 목업: PR·리뷰 */
+
+/* - 생성: 내 커밋 중 PR 에 안 묶인 커밋 1개 이상, 리뷰어는 본인 뺀 팀원 1명 이상, Task 1개 → 바로 리뷰 대기
    - 승인·거부: 지정된 리뷰어만, 리뷰어 중 1명이 결정하면 확정
    - 승인 → 연결 Task 를 DONE / 거부(사유 필수, 리뷰로 남음) → 그 PR 의 커밋·파일 버전이 목록에서 빠짐
    - 리뷰 수정·삭제는 작성자 본인만 */
-import { nextId } from '../db';
-import { fail, ok, created, noContent, publicUser, requireMember, isMember, str, toId, now } from '../util';
+import { nextId } from '@/mocks/db';
+import { fail, ok, created, noContent, publicUser, requireMember, isMember, str, toId, now } from '@/mocks/util';
 import { commitView, commitFilesView } from './files';
 
 const STATUS = { WAITING: 'WAITING', APPROVED: 'APPROVED', CLOSED: 'CLOSED' };

@@ -1,11 +1,10 @@
-/* =========================================================
-   응답 어댑터: 서버 응답 형태가 정해지면 이 파일만 고친다.
-   - unwrap      : 공통 응답 껍데기({ success, data, message } 등)를 벗긴다
-   - toApiError  : 실패 응답을 화면에서 쓸 오류로 바꾼다
-   - normalize*  : 필드 이름 차이(id / memberId, nickname / name …)를 흡수한다
-   화면 코드는 normalize* 결과 모양만 믿고 쓴다.
-   ========================================================= */
+/* 응답 어댑터: 서버 응답 형태가 정해지면 이 파일만 고친다.
+   화면 코드는 normalize* 결과 모양만 믿고 쓴다. */
 import { ApiError } from './errors';
+
+// unwrap     : 공통 응답 껍데기({ success, data, message } 등)를 벗긴다
+// toApiError : 실패 응답을 화면에서 쓸 오류로 바꾼다
+// normalize* : 필드 이름 차이(id / memberId, nickname / name …)를 흡수한다
 
 export function unwrap(body) {
   if (body && typeof body === 'object' && !Array.isArray(body) && 'data' in body &&

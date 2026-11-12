@@ -1,16 +1,13 @@
-/* =========================================================
-   공통 API 클라이언트
-   - VITE_USE_MOCK=true  : 브라우저 안 목업 서버(src/mock)로 보낸다
-   - VITE_USE_MOCK=false : VITE_API_BASE_URL + 경로로 실제 요청
-   - 인증 필요한 API(route.auth !== false)에만 Authorization: Bearer 토큰을 붙인다
-   - 401 → 토큰을 지우고 로그인 화면으로 / 404 → "찾을 수 없습니다." 처리
-   - 응답 풀기·오류 문구는 adapter.js 에 모아 둔다
-   ========================================================= */
+/* 공통 API 클라이언트: 목업/실서버 전환, 토큰 헤더, 401·404 공통 처리.
+   응답 풀기·오류 문구는 adapter.js 에 모아 둔다 */
 import { unwrap, toApiError } from './adapter';
 import { getToken, clearToken } from './token';
 
-export const USE_MOCK = String(import.meta.env.VITE_USE_MOCK ?? 'true').toLowerCase() !== 'false';
-const BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+// NEXT_PUBLIC_USE_MOCK=true : 브라우저 안 목업 서버(mocks/)로 보낸다
+// NEXT_PUBLIC_USE_MOCK=false: NEXT_PUBLIC_API_URL + 경로로 실제 요청
+// 인증 필요한 API(route.auth !== false)에만 Authorization: Bearer 토큰을 붙인다
+export const USE_MOCK = String(process.env.NEXT_PUBLIC_USE_MOCK ?? 'true').toLowerCase() !== 'false';
+const BASE_URL = String(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
 
 /* 화면 쪽(라우터)에서 401·404 때 할 일을 등록한다 */
 const handlers = { unauthorized: null, notFound: null };
@@ -54,7 +51,7 @@ export async function request(route, { params, query, body, blob = false, handle
 
   let res;
   if (USE_MOCK) {
-    const { mockFetch } = await import('../mock/server.js');
+    const { mockFetch } = await import('@/mocks/server');
     res = await mockFetch(route, { path, params: params || {}, query: query || {}, body, headers });
   } else {
     const isForm = typeof FormData !== 'undefined' && body instanceof FormData;

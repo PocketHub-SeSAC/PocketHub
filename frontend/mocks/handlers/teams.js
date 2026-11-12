@@ -1,6 +1,6 @@
 /* [담당 2] 목업: 팀·팀원 */
-import { nextId } from '../db';
-import { fail, ok, created, noContent, publicUser, requireMember, str, toId, now, EMAIL_RE } from '../util';
+import { nextId } from '@/mocks/db';
+import { fail, ok, created, noContent, publicUser, requireMember, str, toId, now, EMAIL_RE } from '@/mocks/util';
 
 const memberView = (db, teamId, m) => ({
   ...publicUser(db, m.userId),

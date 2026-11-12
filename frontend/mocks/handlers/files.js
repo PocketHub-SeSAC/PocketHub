@@ -1,12 +1,13 @@
-/* [담당 3] 목업: 파일·커밋
-   규칙
+/* [담당 3] 목업: 파일·커밋 */
+
+/* 규칙
    - 파일 1개 = 커밋 1개 (한 번에 1개만). 같은 이름을 다시 올리면 새 버전(v2, v3 …)
    - 삭제도 커밋(DELETE)으로 남고, 올린 본인(현재 버전 업로더)만 삭제 가능
    - 거부된 PR 의 커밋은 excluded=true → 커밋 목록·파일 버전에서 빠진다
    파일의 현재 상태는 "목록에 남은 커밋"을 시간 순으로 훑어서 계산한다. */
-import { nextId } from '../db';
-import { fail, ok, created, publicUser, requireMember, str, toId, now } from '../util';
-import { validateFile, ONE_FILE_ONLY } from '../../config/upload';
+import { nextId } from '@/mocks/db';
+import { fail, ok, created, publicUser, requireMember, str, toId, now } from '@/mocks/util';
+import { validateFile, ONE_FILE_ONLY } from '@/utils/upload';
 
 const hex6 = () => Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
 

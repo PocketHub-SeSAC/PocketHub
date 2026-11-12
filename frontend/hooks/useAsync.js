@@ -1,7 +1,7 @@
+/* 비동기 불러오기 + 로딩/오류 상태를 관리하는 훅 (화면에서 services/ 함수를 부를 때 쓴다) */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * 비동기 불러오기 + 로딩/오류 상태.
  * const { data, loading, error, reload, setData } = useAsync(() => getFiles(teamId), [teamId]);
  * fn 이 null 이면 불러오지 않는다.
  */

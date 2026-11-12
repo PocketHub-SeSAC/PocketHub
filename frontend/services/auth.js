@@ -22,7 +22,7 @@ export const logout = () => request(AUTH_API.logout);
 
 export const getMe = () => request(AUTH_API.me).then(normalizeMember);
 
-/** 프로필 아이콘 변경 (Could). iconKey: 'cat' 등 config/profileIcons.js 의 키, null 이면 기본(첫 글자) 아이콘
+/** 프로필 아이콘 변경 (Could). iconKey: 'cat' 등 utils/profileIcons.js 의 키, null 이면 기본(첫 글자) 아이콘
  *  임시 경로: PATCH /api/v1/members/me  본문 { profileIcon } — 명세서에 없어 추가 필요 */
 export const updateMyIcon = (iconKey) =>
   request(AUTH_API.updateMe, { body: { profileIcon: iconKey } }).then(normalizeMember);

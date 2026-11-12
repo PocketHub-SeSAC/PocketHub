@@ -1,8 +1,9 @@
-/* [담당 4] 목업: Task
-   팀원 누구나 생성·수정·삭제·상태 변경. 새 Task 는 TODO.
+/* [담당 4] 목업: Task */
+
+/* 팀원 누구나 생성·수정·삭제·상태 변경. 새 Task 는 TODO.
    마감일은 작업일보다 빠를 수 없다. 담당자는 팀원 1명 또는 비움. */
-import { nextId } from '../db';
-import { fail, ok, created, noContent, publicUser, requireMember, isMember, str, toId, now } from '../util';
+import { nextId } from '@/mocks/db';
+import { fail, ok, created, noContent, publicUser, requireMember, isMember, str, toId, now } from '@/mocks/util';
 import { pullSummary } from './pulls';
 
 const STATUSES = ['TODO', 'DOING', 'DONE'];
