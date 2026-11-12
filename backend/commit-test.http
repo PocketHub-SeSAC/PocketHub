@@ -1,0 +1,20 @@
+### 다중 파일 커밋 - repoId 1 저장소, 엑세스 토큰 필요
+POST http://localhost:8080/api/v1/teams/1/commits
+# Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=multiBoundary
+
+--multiBoundary
+Content-Disposition: form-data; name="commitMessage"
+
+다중 파일 커밋입니다.
+--multiBoundary
+Content-Disposition: form-data; name="files"; filename="sample1.txt"
+Content-Type: text/plain
+
+first file sample
+--multiBoundary
+Content-Disposition: form-data; name="files"; filename="sample2.txt"
+Content-Type: text/plain
+
+second file sample
+--multiBoundary--
