@@ -10,3 +10,5 @@ out
 # Playwright 실행 결과
 test-results
 playwright-report
+# next dev 가 자동으로 만드는 AI 도구 안내 파일
+AGENTS.md

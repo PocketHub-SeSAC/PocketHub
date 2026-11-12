@@ -133,7 +133,7 @@ app/teams/[teamId]/tasks/page.js          주소에 맞는 화면을 고른다 (
 | `api.spec.js` | 목업 모드의 401·404 공통 처리, 요청 실패 시 다시 시도 |
 | `api-real.spec.js` | 실서버 모드에서 `NEXT_PUBLIC_API_URL`로 요청하는지, 토큰 헤더와 응답 처리 (API 요청은 테스트가 가로챔) |
 
-- 기준 스크린샷은 Next.js로 옮기기 전 Vite 버전에서 Windows로 찍었습니다. 운영체제마다 글꼴이 조금 달라 다른 OS에서는 화면 테스트가 실패할 수 있습니다.
+- 화면 비교(스크린샷) 테스트는 Windows 기준이라 다른 OS에서는 실패할 수 있습니다. (기준 스크린샷은 Next.js로 옮기기 전 Vite 버전에서 찍었습니다. 운영체제마다 글꼴 렌더링이 조금 다릅니다.)
 - 화면을 일부러 바꿨다면 `npx playwright test --update-snapshots`로 기준을 새로 찍고, 바뀐 그림을 PR에서 같이 확인합니다.
 - 글꼴(Pretendard·Galmuri·Press Start 2P)을 CDN에서 받으므로 인터넷이 필요합니다.
 
