@@ -1,8 +1,8 @@
 // Playwright E2E 설정: 목업 모드 서버와 실서버 모드 서버(API 요청을 가로채 확인)를 띄워 테스트한다.
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 5173;
-const REAL_PORT = 5174;
+const PORT = 3000;
+const REAL_PORT = 3001;
 
 export default defineConfig({
   testDir: './e2e',
@@ -35,17 +35,19 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `npx vite --port ${PORT} --strictPort`,
+      // 목업 모드: 배포와 같은 production 빌드로 확인한다
+      command: `npx next build && npx next start -p ${PORT}`,
       url: `http://localhost:${PORT}`,
       reuseExistingServer: false,
-      timeout: 120_000,
+      timeout: 300_000,
     },
     {
-      command: `npx vite --port ${REAL_PORT} --strictPort`,
+      // 실서버 모드: 환경변수를 바꿔 개발 서버로 띄우고, API 요청은 테스트가 가로챈다
+      command: `npx next dev -p ${REAL_PORT}`,
       url: `http://localhost:${REAL_PORT}`,
       reuseExistingServer: false,
-      timeout: 120_000,
-      env: { VITE_USE_MOCK: 'false', VITE_API_BASE_URL: 'http://api.test' },
+      timeout: 300_000,
+      env: { NEXT_PUBLIC_USE_MOCK: 'false', NEXT_PUBLIC_API_URL: 'http://api.test' },
     },
   ],
 });
