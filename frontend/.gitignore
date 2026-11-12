@@ -6,3 +6,6 @@ dist
 .env.*.local
 # Vercel CLI 연결 정보
 .vercel
+# Playwright 실행 결과
+test-results
+playwright-report
