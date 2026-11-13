@@ -11,6 +11,7 @@ import java.util.List;
 public class CommitDTO {
     private String commitId;
     private String commitMessage;
+    private Long userId;    // TODO : UserDTO 객체로 바뀜
     private List<FileDTO> files;
 
     public CommitDTO(String commitId, String commitMessage) {
