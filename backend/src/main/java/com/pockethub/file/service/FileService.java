@@ -76,8 +76,12 @@ public class FileService {
         info.setIsLatest(true);
         if(prevFile != null) {
             prevFile.setIsLatest(false);
-            info.setState(FileState.UPDATE);
-            info.setPrevId(prevFile.getFileId());
+            if(prevFile.getState().equals(FileState.DELETE)) {
+                info.setState(FileState.ADD);
+            } else {
+                info.setState(FileState.UPDATE);
+                info.setPrevId(prevFile.getFileId());
+            }
         } else {
             info.setState(FileState.ADD);
         }
