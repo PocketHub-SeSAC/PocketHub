@@ -115,4 +115,12 @@ public class FileService {
             throw new IllegalArgumentException("원본 파일명이 없습니다.");
         }
     }
+
+    @Transactional(readOnly = true)
+    public List<FileDTO> searchLatestFiles(long repoId) {
+        // 상태가 DELETE 가 아닌 최신 파일들을 가져온다.
+        List<File> files = fileRepository.searchLatestFiles(repoId);
+
+        return files.stream().map(FileDTO::new).toList();
+    }
 }
