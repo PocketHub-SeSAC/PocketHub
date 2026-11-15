@@ -29,16 +29,9 @@ public class CommitService {
     @Transactional
     public CommitDTO uploadCommit(long userId, long repoId, List<MultipartFile> files, String commitMessage) {
         // 1. commitId 생성
-        String commitId = UUID.randomUUID().toString();
-
-        // 1-1. 이미 존재하는 commitId 인가 확인
-        boolean isExist = commitRepository.existsById(commitId);
-        while(isExist) {
-            commitId = UUID.randomUUID().toString();
-            isExist = commitRepository.existsById(commitId);
-        }
-
+        String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
+        commitDTO.setUserId(userId);
 
         try {
             // 2. 파일 업로드
@@ -59,5 +52,35 @@ public class CommitService {
         }
 
         return commitDTO;
+    }
+
+    @Transactional
+    public CommitDTO deleteCommit(long userId, long repoId, long fileId, String commitMessage) {
+        String commitId = createCommitId();
+        CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
+        commitDTO.setUserId(userId);
+
+        FileDTO info = fileService.deleteFile(repoId, commitId, fileId);
+
+        commitRepository.save(new Commit(commitId, repoId, userId, commitMessage));
+        File file = fileRepository.save(new File(info));
+
+        info.setFileId(file.getFileId());
+        commitDTO.setFiles(List.of(info));
+
+        return commitDTO;
+    }
+
+    private String createCommitId() {
+        String commitId = UUID.randomUUID().toString();
+
+        // 1-1. 이미 존재하는 commitId 인가 확인
+        boolean isExist = commitRepository.existsById(commitId);
+        while(isExist) {
+            commitId = UUID.randomUUID().toString();
+            isExist = commitRepository.existsById(commitId);
+        }
+
+        return commitId;
     }
 }
