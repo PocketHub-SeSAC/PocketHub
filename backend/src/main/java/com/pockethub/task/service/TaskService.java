@@ -4,11 +4,13 @@ import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.task.domain.Task;
 import com.pockethub.task.domain.TaskPriority;
+import com.pockethub.task.domain.TaskStatus;
 import com.pockethub.task.dto.TaskRequest;
 import com.pockethub.task.dto.TaskResponse;
 import com.pockethub.task.repository.TaskRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,19 @@ public class TaskService {
                 repoId, request.getTitle(), request.getText(), priority, request.getManagerId(), toDateTime(request.getEndAt())
         ));
         return TaskResponse.from(task);
+    }
+
+    // status 가 없으면 전체, 최신 Task 가 먼저 오게 정렬
+    @Transactional(readOnly = true)
+    public List<TaskResponse> findTasks(long userId, long repoId, TaskStatus status) {
+        validateMember(userId, repoId);
+
+        List<Task> tasks = status == null
+                ? taskRepository.findByRepoIdOrderByTaskIdDesc(repoId)
+                : taskRepository.findByRepoIdAndStatusOrderByTaskIdDesc(repoId, status);
+        return tasks.stream()
+                .map(TaskResponse::from)
+                .toList();
     }
 
     // 팀이 없으면 404, 요청한 사용자가 팀원이 아니면 403
