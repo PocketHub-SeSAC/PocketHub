@@ -1,7 +1,8 @@
 package com.pockethub.pr.controller;
 
 import com.pockethub.pr.dto.PrCreateRequest;
-import com.pockethub.pr.dto.PrDTO;
+import com.pockethub.pr.dto.PrDetailResponse;
+import com.pockethub.pr.dto.PrSummaryResponse;
 import com.pockethub.pr.dto.PrUpdateRequest;
 import com.pockethub.pr.service.PrService;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,7 @@ public class PrController {
 
     // API-029 PR 생성: 내 커밋을 묶어 리뷰 대기(OPEN) 상태로 만든다
     @PostMapping
-    public ResponseEntity<PrDTO> createPr(
+    public ResponseEntity<PrDetailResponse> createPr(
             Authentication authentication,
             @PathVariable("teamId") long repoId,
             @RequestBody PrCreateRequest request
@@ -34,7 +35,7 @@ public class PrController {
 
     // API-030 PR 목록: ?status= 로 상태 필터 (없으면 전체), 최신순
     @GetMapping
-    public ResponseEntity<List<PrDTO>> getPrs(
+    public ResponseEntity<List<PrSummaryResponse>> getPrs(
             @PathVariable("teamId") long repoId,
             @RequestParam(value = "status", required = false) String status
     ) {
@@ -43,7 +44,7 @@ public class PrController {
 
     // API-031 PR 상세: 커밋 목록 포함
     @GetMapping("/{prId}")
-    public ResponseEntity<PrDTO> getPr(
+    public ResponseEntity<PrDetailResponse> getPr(
             @PathVariable("teamId") long repoId,
             @PathVariable("prId") long prId
     ) {
@@ -52,7 +53,7 @@ public class PrController {
 
     // PR 수정: 작성자 본인, 리뷰 대기(OPEN) 상태일 때만 제목·설명 수정
     @PatchMapping("/{prId}")
-    public ResponseEntity<PrDTO> updatePr(
+    public ResponseEntity<PrDetailResponse> updatePr(
             Authentication authentication,
             @PathVariable("teamId") long repoId,
             @PathVariable("prId") long prId,

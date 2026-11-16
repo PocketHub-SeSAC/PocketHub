@@ -3,19 +3,32 @@ package com.pockethub.pr.service;
 import com.pockethub.commit.domain.Commit;
 import com.pockethub.commit.repository.CommitRepository;
 import com.pockethub.common.validation.ValidationRules;
+import com.pockethub.file.domain.File;
 import com.pockethub.pr.domain.Pr;
 import com.pockethub.pr.domain.PrState;
 import com.pockethub.pr.dto.PrCreateRequest;
-import com.pockethub.pr.dto.PrDTO;
+import com.pockethub.pr.dto.PrDetailResponse;
+import com.pockethub.pr.dto.PrMemberResponse;
+import com.pockethub.pr.dto.PrSummaryResponse;
+import com.pockethub.pr.dto.PrTaskResponse;
 import com.pockethub.pr.dto.PrUpdateRequest;
 import com.pockethub.pr.repository.PrRepository;
+import com.pockethub.pr.repository.PrRepository.MemberRow;
+import com.pockethub.pr.repository.PrRepository.ReviewCountRow;
+import com.pockethub.pr.repository.PrRepository.TaskRow;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class PrService {
@@ -29,7 +42,7 @@ public class PrService {
 
     // TODO : 팀원 여부 확인, Task 존재·소속 확인은 member·task 기능이 생기면 추가
     @Transactional
-    public PrDTO createPr(long userId, long repoId, PrCreateRequest request) {
+    public PrDetailResponse createPr(long userId, long repoId, PrCreateRequest request) {
         String title = validateTitle(request.getTitle());
         String text = validateText(request.getDescription());
         List<String> commitIds = validateCommitIds(request.getCommitIds());
@@ -42,30 +55,32 @@ public class PrService {
         Pr pr = prRepository.save(new Pr(title, text, repoId, request.getTaskId(), userId));
         commits.forEach(commit -> commit.setPrId(pr.getPrId()));
 
-        return new PrDTO(pr, commits);
+        return toDetail(pr, commits);
     }
 
     // TODO : 팀원 여부 확인(403)은 member·team 기능이 생기면 추가 (조회·수정·삭제 공통)
     @Transactional(readOnly = true)
-    public List<PrDTO> getPrs(long repoId, String status) {
+    public List<PrSummaryResponse> getPrs(long repoId, String status) {
         PrState state = PrState.from(status);
         List<Pr> prs = (state == null)
                 ? prRepository.findByRepoIdOrderByPrIdDesc(repoId)
                 : prRepository.findByRepoIdAndStateOrderByPrIdDesc(repoId, state);
-        return prs.stream().map(PrDTO::new).toList();
+
+        Related related = loadRelated(prs);
+        return prs.stream().map(related::summary).toList();
     }
 
     @Transactional(readOnly = true)
-    public PrDTO getPr(long repoId, long prId) {
+    public PrDetailResponse getPr(long repoId, long prId) {
         Pr pr = findPr(repoId, prId);
-        return new PrDTO(pr, prRepository.findCommitsByPrId(prId));
+        return toDetail(pr, prRepository.findCommitsByPrId(prId));
     }
 
     @Transactional
-    public PrDTO updatePr(long userId, long repoId, long prId, PrUpdateRequest request) {
+    public PrDetailResponse updatePr(long userId, long repoId, long prId, PrUpdateRequest request) {
         Pr pr = findEditablePr(userId, repoId, prId, "수정");
         pr.update(validateTitle(request.getTitle()), validateText(request.getDescription()));
-        return new PrDTO(pr, prRepository.findCommitsByPrId(prId));
+        return toDetail(pr, prRepository.findCommitsByPrId(prId));
     }
 
     // 커밋은 FK(ON DELETE SET NULL)로도 풀리지만, 같은 트랜잭션 안의 커밋 엔티티 값도 맞추려고 직접 비운다
@@ -94,6 +109,74 @@ public class PrService {
         }
         return pr;
     }
+
+    // ---------- 응답 조립 ----------
+
+    private PrDetailResponse toDetail(Pr pr, List<Commit> commits) {
+        List<String> commitIds = commits.stream().map(Commit::getCommitId).toList();
+        List<File> files = commitIds.isEmpty() ? List.of() : prRepository.findFilesByCommitIds(commitIds);
+        return loadRelated(List.of(pr)).detail(pr, commits, files);
+    }
+
+    // 작성자·승인자·Task·리뷰 수를 PR 개수와 상관없이 한 번씩만 조회 (목록 N+1 방지)
+    private Related loadRelated(List<Pr> prs) {
+        Set<Long> userIds = new HashSet<>();
+        Set<Long> taskIds = new HashSet<>();
+        Set<Long> prIds = new HashSet<>();
+        for (Pr pr : prs) {
+            userIds.add(pr.getUserId());
+            if (pr.getApproverId() != null) userIds.add(pr.getApproverId());
+            if (pr.getTaskId() != null) taskIds.add(pr.getTaskId());
+            prIds.add(pr.getPrId());
+        }
+
+        Map<Long, MemberRow> members = toMap(userIds, prRepository::findMembers, MemberRow::getUserId);
+        Map<Long, TaskRow> tasks = toMap(taskIds, prRepository::findTasks, TaskRow::getTaskId);
+        Map<Long, Long> reviewCounts = prIds.isEmpty() ? Map.of() : prRepository.countReviews(prIds).stream()
+                .collect(Collectors.toMap(ReviewCountRow::getPrId, ReviewCountRow::getReviewCount));
+        return new Related(members, tasks, reviewCounts);
+    }
+
+    // IN () 빈 목록은 SQL 오류라 조회하지 않는다
+    private static <T> Map<Long, T> toMap(Collection<Long> ids, Function<Collection<Long>, List<T>> finder,
+                                          Function<T, Long> idOf) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return finder.apply(ids).stream().collect(Collectors.toMap(idOf, Function.identity()));
+    }
+
+    private record Related(Map<Long, MemberRow> members, Map<Long, TaskRow> tasks, Map<Long, Long> reviewCounts) {
+
+        PrSummaryResponse summary(Pr pr) {
+            return new PrSummaryResponse(pr, member(pr.getUserId()), task(pr), reviewCount(pr), member(pr.getApproverId()));
+        }
+
+        PrDetailResponse detail(Pr pr, List<Commit> commits, List<File> files) {
+            return new PrDetailResponse(pr, member(pr.getUserId()), task(pr), reviewCount(pr),
+                    member(pr.getApproverId()), commits, files);
+        }
+
+        private PrMemberResponse member(Long userId) {
+            if (userId == null) {
+                return null;
+            }
+            MemberRow row = members.get(userId);
+            return (row == null) ? PrMemberResponse.idOnly(userId) : PrMemberResponse.from(row);
+        }
+
+        // Task 가 삭제됐으면(task_id NULL) null
+        private PrTaskResponse task(Pr pr) {
+            TaskRow row = (pr.getTaskId() == null) ? null : tasks.get(pr.getTaskId());
+            return (row == null) ? null : PrTaskResponse.from(row);
+        }
+
+        private long reviewCount(Pr pr) {
+            return reviewCounts.getOrDefault(pr.getPrId(), 0L);
+        }
+    }
+
+    // ---------- 입력 검증 ----------
 
     private String validateTitle(String title) {
         if (title == null || title.isBlank()) {
