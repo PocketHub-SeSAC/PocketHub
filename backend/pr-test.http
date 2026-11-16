@@ -1,0 +1,66 @@
+### PR 생성 - repoId 1 저장소, commitIds 는 commit-test.http 로 만든 커밋 ID 를 넣는다
+POST http://localhost:8080/api/v1/teams/1/pulls
+X-User-Id: 1
+Content-Type: application/json
+
+{
+  "title": "[Feat] 파일 업로드 기능",
+  "description": "업로드 커밋을 PR 로 묶습니다.",
+  "commitIds": ["abc5d66e-d1f0-4e41-bce4-b4332e7827e4"],
+  "taskId": 1
+}
+
+
+### PR 생성 - 커밋 없이 요청 (400)
+POST http://localhost:8080/api/v1/teams/1/pulls
+X-User-Id: 1
+Content-Type: application/json
+
+{
+  "title": "커밋 없는 PR",
+  "commitIds": [],
+  "taskId": 1
+}
+
+### PR 목록 - 전체 (최신순)
+GET http://localhost:8080/api/v1/teams/1/pulls
+X-User-Id: 1
+
+### PR 목록 - 상태 필터 (OPEN·APPROVE·DENIED, 프론트 값 WAITING·APPROVED·CLOSED 도 됨)
+GET http://localhost:8080/api/v1/teams/1/pulls?status=OPEN
+X-User-Id: 1
+
+### PR 상세 - 커밋 목록 포함
+GET http://localhost:8080/api/v1/teams/1/pulls/1
+X-User-Id: 1
+
+### PR 상세 - 다른 팀 경로로 조회 (404)
+GET http://localhost:8080/api/v1/teams/2/pulls/1
+X-User-Id: 1
+
+### PR 수정 - 작성자 본인, OPEN 상태일 때만 제목·설명 수정
+PATCH http://localhost:8080/api/v1/teams/1/pulls/1
+X-User-Id: 1
+Content-Type: application/json
+
+{
+  "title": "[Feat] 파일 업로드 기능 (수정)",
+  "description": "설명을 고쳤습니다."
+}
+
+### PR 수정 - 작성자가 아닌 사람 (403)
+PATCH http://localhost:8080/api/v1/teams/1/pulls/1
+X-User-Id: 2
+Content-Type: application/json
+
+{
+  "title": "남이 수정"
+}
+
+### PR 삭제 - 작성자가 아닌 사람 (403)
+DELETE http://localhost:8080/api/v1/teams/1/pulls/1
+X-User-Id: 2
+
+### PR 삭제 - 작성자 본인 (204), 묶였던 커밋은 다시 PR 에 넣을 수 있게 풀림
+DELETE http://localhost:8080/api/v1/teams/1/pulls/1
+X-User-Id: 1
