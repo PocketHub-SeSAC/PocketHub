@@ -1,8 +1,10 @@
 package com.pockethub.file.service;
 
 import com.pockethub.commit.dto.FileState;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
+import com.pockethub.file.dto.FileDownloadRes;
 import com.pockethub.file.repository.FileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -139,5 +141,18 @@ public class FileService {
         if(file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw new IllegalArgumentException("원본 파일명이 없습니다.");
         }
+    }
+
+    public FileDownloadRes fileDownload(long fileId, long repoId) {
+        // 조회에서 repository 에 find 추가해놨으니 머지되면 가져와서 사용 교체
+        File file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new NotFoundException("파일을 찾을 수 없습니다."));
+
+        FileDownloadRes res = new FileDownloadRes();
+        res.setFileName(file.getOriginalName());
+        Path filePath = uploadRoot.resolve(file.getFilePath()).normalize();
+        res.setFile(new java.io.File(filePath.toString()));
+
+        return res;
     }
 }
