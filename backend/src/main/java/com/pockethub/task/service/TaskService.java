@@ -7,6 +7,7 @@ import com.pockethub.task.domain.TaskPriority;
 import com.pockethub.task.domain.TaskStatus;
 import com.pockethub.task.dto.TaskRequest;
 import com.pockethub.task.dto.TaskResponse;
+import com.pockethub.task.dto.TaskStatusRequest;
 import com.pockethub.task.repository.TaskRepository;
 
 import java.time.LocalDate;
@@ -78,6 +79,17 @@ public class TaskService {
                 request.getTitle(), request.getText(), request.getPriority(),
                 request.getManagerId(), toDateTime(request.getEndAt())
         );
+        return TaskResponse.from(task);
+    }
+
+    @Transactional
+    public TaskResponse updateTaskStatus(long userId, long repoId, long taskId, TaskStatusRequest request) {
+        validateMember(userId, repoId);
+
+        Task task = taskRepository.findByTaskIdAndRepoId(taskId, repoId)
+                .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
+
+        task.changeStatus(request.getStatus());
         return TaskResponse.from(task);
     }
 

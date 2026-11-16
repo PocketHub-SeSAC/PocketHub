@@ -65,4 +65,8 @@ public class Task {
             this.endAt = endAt;
         }
     }
+    // 상태만 바꾼다 (TODO / DOING / DONE)
+    public void changeStatus(TaskStatus status) {
+        this.status = status;
+    }
 }

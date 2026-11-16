@@ -4,6 +4,7 @@ import com.pockethub.common.response.ResponseDTO;
 import com.pockethub.task.domain.TaskStatus;
 import com.pockethub.task.dto.TaskRequest;
 import com.pockethub.task.dto.TaskResponse;
+import com.pockethub.task.dto.TaskStatusRequest;
 import com.pockethub.task.dto.TaskUpdateRequest;
 import com.pockethub.task.service.TaskService;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ public class TaskController {
     private static final String FIND_LIST_MESSAGE = "Task 목록을 조회했습니다.";
     private static final String FIND_MESSAGE = "Task를 조회했습니다.";
     private static final String UPDATE_MESSAGE = "Task를 수정했습니다.";
+    private static final String UPDATE_STATUS_MESSAGE = "Task 상태를 변경했습니다.";
 
     private final TaskService taskService;
 
@@ -75,6 +77,17 @@ public class TaskController {
     ) {
         TaskResponse task = taskService.updateTask(currentUserId(authentication), repoId, taskId, request);
         return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASK_KEY, task), UPDATE_MESSAGE));
+    }
+    // API-026 Task 상태 변경
+    @PatchMapping("/{taskId}/status")
+    public ResponseEntity<ResponseDTO> updateTaskStatus(
+            Authentication authentication,
+            @PathVariable("teamId") long repoId,
+            @PathVariable("taskId") long taskId,
+            @Valid @RequestBody TaskStatusRequest request
+    ) {
+        TaskResponse task = taskService.updateTaskStatus(currentUserId(authentication), repoId, taskId, request);
+        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASK_KEY, task), UPDATE_STATUS_MESSAGE));
     }
     // TODO : JWT 필터로 바뀐 뒤에도 principal 이 userId 인지 확인
     private long currentUserId(Authentication authentication) {
