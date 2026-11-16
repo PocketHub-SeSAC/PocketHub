@@ -11,11 +11,12 @@ public final class ValidationRules {
 
     // 회원
     public static final int EMAIL_MAX = 255;
-    /* 비밀번호 규칙은 팀 확정 전 (길이 외 조합 규칙 미정).
-       MAX 72 는 BCrypt 가 72바이트까지만 쓰기 때문. */
     public static final int PASSWORD_MIN = 8;
-    public static final int PASSWORD_MAX = 72;
+    public static final int PASSWORD_MAX = 64;
+    public static final String PASSWORD_PATTERN = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d\\p{Punct}]+$";
+    public static final int NICKNAME_MIN = 2;
     public static final int NICKNAME_MAX = 45;
+    public static final String NICKNAME_PATTERN = "^[가-힣a-zA-Z0-9]+$";
 
     // 팀(저장소)
     public static final int REPO_NAME_MAX = 45;
