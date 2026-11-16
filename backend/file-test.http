@@ -1,0 +1,8 @@
+### 저장소 최신 파일 조회
+GET http://localhost:8080/api/v1/teams/1/files
+
+### 파일 상세 조회 - 존재하지 않는 파일
+GET http://localhost:8080/api/v1/teams/1/files/9999
+
+### 파일 상세 조회
+GET http://localhost:8080/api/v1/teams/1/files/25

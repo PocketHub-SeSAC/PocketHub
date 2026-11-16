@@ -1,6 +1,7 @@
 package com.pockethub.file.service;
 
 import com.pockethub.commit.dto.FileState;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.repository.FileRepository;
@@ -72,7 +73,7 @@ public class FileService {
 
         FileDTO info = new FileDTO(fileName, relativePath, commitId, repoId, file.getSize() / 1024.0f);
 
-        File prevFile = fileRepository.findFirstByOriginalNameAndIsLatestOrderByFileIdDesc(info.getOriginalName(), true);
+        File prevFile = fileRepository.findFirstByOriginalNameAndIsLatestOrderByFileIdDesc(info.getFileName(), true);
         info.setIsLatest(true);
         if(prevFile != null) {
             prevFile.setIsLatest(false);
@@ -91,8 +92,10 @@ public class FileService {
 
     @Transactional
     public FileDTO deleteFile(long repoId, String commitId, long fileId) {
-        File prevFile = fileRepository.findById(fileId)
-                .orElseThrow(() -> new IllegalArgumentException("삭제하려는 파일이 존재하지 않습니다."));
+        File prevFile = fileRepository.findByFileIdAndRepoId(fileId, repoId);
+        if(prevFile == null) {
+            throw new NotFoundException("삭제하려는 파일이 존재하지 않습니다.");
+        }
         if(!prevFile.getIsLatest()) {
             throw new IllegalArgumentException("삭제하려는 파일이 최신 파일이 아닙니다. 최신 파일을 선택해주세요.");
         }
@@ -139,5 +142,24 @@ public class FileService {
         if(file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw new IllegalArgumentException("원본 파일명이 없습니다.");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<FileDTO> searchLatestFiles(long repoId) {
+        // 상태가 DELETE 가 아닌 최신 파일들을 가져온다.
+        List<File> files = fileRepository.searchLatestFiles(repoId);
+
+        return files.stream().map(FileDTO::new).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public FileDTO findFileDetail(long fileId, long repoId) {
+        File file = fileRepository.findByFileIdAndRepoId(fileId, repoId);
+
+        if(file == null) {
+            throw new NotFoundException("조회하려는 파일 정보가 존재하지 않습니다.");
+        }
+
+        return new FileDTO(file);
     }
 }

@@ -3,10 +3,16 @@ package com.pockethub.commit.service;
 import com.pockethub.commit.domain.Commit;
 import com.pockethub.commit.dto.CommitDTO;
 import com.pockethub.commit.repository.CommitRepository;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.repository.FileRepository;
 import com.pockethub.file.service.FileService;
+import com.pockethub.user.domain.User;
+import com.pockethub.user.dto.UserResponse;
+import com.pockethub.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,11 +24,13 @@ import java.util.UUID;
 public class CommitService {
     private final CommitRepository commitRepository;
     private final FileRepository fileRepository;
+    private final UserRepository userRepository;
     private final FileService fileService;
 
-    public CommitService(CommitRepository commitRepository, FileRepository fileRepository, FileService fileService) {
+    public CommitService(CommitRepository commitRepository, FileRepository fileRepository, UserRepository userRepository, FileService fileService) {
         this.commitRepository = commitRepository;
         this.fileRepository = fileRepository;
+        this.userRepository = userRepository;
         this.fileService = fileService;
     }
 
@@ -31,16 +39,19 @@ public class CommitService {
         // 1. commitId 생성
         String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
-        commitDTO.setUserId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("유저 정보가 존재하지 않습니다."));
+        commitDTO.setUser(UserResponse.from(user));
 
         try {
             // 2. 파일 업로드
             List<FileDTO> fileList = fileService.uploadFiles(repoId, commitId, files);
 
             // 3. DB 에 추가
-            commitRepository.save(new Commit(commitId, repoId, userId, commitMessage));
+            Commit commit = commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
             for(FileDTO f : fileList) {
-                File file = fileRepository.save(new File(f));
+                f.setCommit(commit);
+                File file = fileRepository.save(new File(f, commit));
                 f.setFileId(file.getFileId());
             }
 
@@ -58,12 +69,15 @@ public class CommitService {
     public CommitDTO deleteCommit(long userId, long repoId, long fileId, String commitMessage) {
         String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
-        commitDTO.setUserId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("유저 정보가 존재하지 않습니다."));
+        commitDTO.setUser(UserResponse.from(user));
 
         FileDTO info = fileService.deleteFile(repoId, commitId, fileId);
 
-        commitRepository.save(new Commit(commitId, repoId, userId, commitMessage));
-        File file = fileRepository.save(new File(info));
+        Commit commit = commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
+        info.setCommit(commit);
+        File file = fileRepository.save(new File(info, commit));
 
         info.setFileId(file.getFileId());
         commitDTO.setFiles(List.of(info));
@@ -82,5 +96,24 @@ public class CommitService {
         }
 
         return commitId;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CommitDTO> findCommitList(long repoId, Pageable pageable) {
+        Page<CommitDTO> commitList = commitRepository.findByRepoId(repoId, pageable)
+                .map(CommitDTO::new);
+
+        return commitList;
+    }
+
+    @Transactional(readOnly = true)
+    public CommitDTO findCommitDetail(String commitId, long repoId) {
+        Commit commit = commitRepository.findByCommitIdAndRepoId(commitId, repoId);
+
+        if(commit == null) {
+            throw new NotFoundException("조회하려는 커밋이 존재하지 않습니다.");
+        }
+
+        return new CommitDTO(commit);
     }
 }
