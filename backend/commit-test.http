@@ -1,4 +1,4 @@
-### 파일 업로드 커밋 - repoId 1 저장소, 엑세스 토큰 필요
+### 파일 업로드 커밋 - repoId 1 저장소
 POST http://localhost:8080/api/v1/teams/1/commits
 #Authorization: Bearer {{accessToken}}
 Content-Type: multipart/form-data; boundary=multiBoundary
@@ -19,9 +19,23 @@ Content-Type: text/plain
 second file sample
 --multiBoundary--
 
+### 파일 삭제 커밋 - 파일이 존재하지 않음
+DELETE http://localhost:8080/api/v1/teams/1/commits/99999?commitMessage=DeleteNoFile
 
-### 파일 삭제 커밋 - 이전 상태 파일로 실패
-DELETE http://localhost:8080/api/v1/teams/1/commits/1?commitMessage=DELETECOMMIT
+### 파일 삭제 커밋 - 과거 상태 파일
+DELETE http://localhost:8080/api/v1/teams/1/commits/1?commitMessage=DeleteOldFile
 
 ### 파일 삭제 커밋 - 최신 파일 ID
-DELETE http://localhost:8080/api/v1/teams/1/commits/6?commitMessage=DELETECOMMIT
+DELETE http://localhost:8080/api/v1/teams/1/commits/22?commitMessage=DELETECOMMIT
+
+### 커밋 목록 조회 - 1페이지
+GET http://localhost:8080/api/v1/teams/1/commits?page=0
+
+### 커밋 목록 조회 - 2페이지
+GET http://localhost:8080/api/v1/teams/1/commits?page=1
+
+### 커밋 상세 조회 - 존재하지 않는 커밋
+GET http://localhost:8080/api/v1/teams/1/commits/aaa
+
+### 커밋 상세 조회
+GET http://localhost:8080/api/v1/teams/1/commits/6ad604de-14ff-4483-8d7e-fe68ad1dad9a

@@ -1,6 +1,7 @@
 package com.pockethub.commit.domain;
 
 import com.pockethub.file.domain.File;
+import com.pockethub.user.domain.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,25 +25,23 @@ public class Commit {
     private LocalDateTime createdAt;
     @Column(nullable = false)
     private long repoId;
-    // TODO : userId 대신 User 엔티티로 변경
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "user_id", nullable = false)
-    @Column(nullable = false)
-    private long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, updatable = false)
+    private User user;
     @Setter
     @Column
     private Long prId;
 
-    @OneToMany(mappedBy = "commitId", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "commit", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<File> files = new ArrayList<>();
 
     protected Commit() {
     }
 
-    public Commit(String commitId, long repoId, long userId, String message) {
+    public Commit(String commitId, long repoId, User user, String message) {
         this.commitId = commitId;
         this.repoId = repoId;
-        this.userId = userId;
+        this.user = user;
         this.message = message;
     }
 }

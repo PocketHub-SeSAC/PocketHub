@@ -235,7 +235,7 @@ public class PrService {
         }
 
         for (Commit commit : commits) {
-            if (commit.getUserId() != userId) {
+            if (commit.getUser().getId() != userId) {
                 throw new IllegalArgumentException("내가 만든 커밋만 PR에 넣을 수 있어요.");
             }
             if (commit.getPrId() != null) {
