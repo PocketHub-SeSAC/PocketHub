@@ -48,9 +48,10 @@ public class CommitService {
             List<FileDTO> fileList = fileService.uploadFiles(repoId, commitId, files);
 
             // 3. DB 에 추가
-            commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
+            Commit commit = commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
             for(FileDTO f : fileList) {
-                File file = fileRepository.save(new File(f));
+                f.setCommit(commit);
+                File file = fileRepository.save(new File(f, commit));
                 f.setFileId(file.getFileId());
             }
 
@@ -74,8 +75,9 @@ public class CommitService {
 
         FileDTO info = fileService.deleteFile(repoId, commitId, fileId);
 
-        commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
-        File file = fileRepository.save(new File(info));
+        Commit commit = commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
+        info.setCommit(commit);
+        File file = fileRepository.save(new File(info, commit));
 
         info.setFileId(file.getFileId());
         commitDTO.setFiles(List.of(info));

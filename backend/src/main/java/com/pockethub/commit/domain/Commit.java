@@ -26,13 +26,13 @@ public class Commit {
     @Column(nullable = false)
     private long repoId;
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, updatable = false)
     private User user;
     @Setter
     @Column
     private Long prId;
 
-    @OneToMany(mappedBy = "commitId", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "commit", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<File> files = new ArrayList<>();
 
     protected Commit() {

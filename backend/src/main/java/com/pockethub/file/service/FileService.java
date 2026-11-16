@@ -151,4 +151,15 @@ public class FileService {
 
         return files.stream().map(FileDTO::new).toList();
     }
+
+    @Transactional(readOnly = true)
+    public FileDTO findFileDetail(long fileId, long repoId) {
+        File file = fileRepository.findByFileIdAndRepoId(fileId, repoId);
+
+        if(file == null) {
+            throw new NotFoundException("조회하려는 파일 정보가 존재하지 않습니다.");
+        }
+
+        return new FileDTO(file);
+    }
 }

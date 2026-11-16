@@ -1,5 +1,6 @@
 package com.pockethub.file.domain;
 
+import com.pockethub.commit.domain.Commit;
 import com.pockethub.commit.dto.FileState;
 import com.pockethub.file.dto.FileDTO;
 import jakarta.persistence.*;
@@ -27,15 +28,16 @@ public class File {
     private Boolean isLatest;
     @Column(nullable = false)
     private long repoId;
-    @Column
-    private String commitId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commit_id", nullable = false, updatable = false)
+    private Commit commit;
     @Setter
     @Column
     private Long prevId;
 
     protected File() { }
 
-    public File(String filePath, String originalName, FileState state, Float size, Boolean isLatest, long repoId, String commitId, Long prevId) {
+    public File(String filePath, String originalName, FileState state, Float size, Boolean isLatest, long repoId, Commit commit, Long prevId) {
         this.filePath = filePath;
         this.originalName = originalName;
         this.state = state;
@@ -44,19 +46,19 @@ public class File {
         if(isLatest != null)
             this.isLatest = isLatest;
         this.repoId = repoId;
-        this.commitId = commitId;
+        this.commit = commit;
         if(prevId != null)
             this.prevId = prevId;
     }
 
-    public File(FileDTO dto) {
+    public File(FileDTO dto, Commit commit) {
         this.filePath = dto.getFilePath();
         this.originalName = dto.getFileName();
         this.state = dto.getState();
-        this.size = dto.getSize();
+        this.size = dto.getFileSize();
         this.isLatest = dto.getIsLatest();
         this.repoId = dto.getRepoId();
-        this.commitId = dto.getCommitId();
         this.prevId = dto.getPrevId();
+        this.commit = commit;
     }
 }
