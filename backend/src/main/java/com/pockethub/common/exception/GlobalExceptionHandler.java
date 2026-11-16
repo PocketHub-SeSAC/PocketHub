@@ -79,6 +79,14 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, message, request);
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handlerConflict(
+            ConflictException exception, WebRequest request
+    ) {
+        ErrorResponse response = new ErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), extractPath(request));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     // TODO : 처리할 예외들 작성
 
     // 나머지 모든 익셉션 처리
