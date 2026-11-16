@@ -145,10 +145,13 @@ public class FileService {
         }
     }
 
+    @Transactional(readOnly = true)
     public FileDownloadRes fileDownload(long fileId, long repoId) {
         // 조회에서 repository 에 find 추가해놨으니 머지되면 가져와서 사용 교체
-        File file = fileRepository.findById(fileId)
-                .orElseThrow(() -> new NotFoundException("파일을 찾을 수 없습니다."));
+        File file = fileRepository.findByFileIdAndRepoId(fileId, repoId);
+        if(file == null) {
+            throw new NotFoundException("파일을 찾을 수 없습니다.");
+        }
 
         FileDownloadRes res = new FileDownloadRes();
         res.setFileName(file.getOriginalName());
