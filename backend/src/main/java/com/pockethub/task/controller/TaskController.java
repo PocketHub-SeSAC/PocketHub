@@ -20,6 +20,7 @@ public class TaskController {
     private static final String TASKS_KEY = "tasks";
     private static final String CREATE_MESSAGE = "Task가 생성되었습니다.";
     private static final String FIND_LIST_MESSAGE = "Task 목록을 조회했습니다.";
+    private static final String FIND_MESSAGE = "Task를 조회했습니다.";
 
     private final TaskService taskService;
 
@@ -51,6 +52,16 @@ public class TaskController {
         return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASKS_KEY, tasks), FIND_LIST_MESSAGE));
     }
 
+    // API-024 Task 상세 조회
+    @GetMapping("/{taskId}")
+    public ResponseEntity<ResponseDTO> findTask(
+            Authentication authentication,
+            @PathVariable("teamId") long repoId,
+            @PathVariable("taskId") long taskId
+    ) {
+        TaskResponse task = taskService.findTask(currentUserId(authentication), repoId, taskId);
+        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASK_KEY, task), FIND_MESSAGE));
+    }
     // TODO : JWT 필터로 바뀐 뒤에도 principal 이 userId 인지 확인
     private long currentUserId(Authentication authentication) {
         return Long.parseLong(authentication.getName());

@@ -51,6 +51,15 @@ public class TaskService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public TaskResponse findTask(long userId, long repoId, long taskId) {
+        validateMember(userId, repoId);
+
+    Task task = taskRepository.findByTaskIdAndRepoId(taskId, repoId)
+        .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
+        return TaskResponse.from(task);
+    }
+
     // 팀이 없으면 404, 요청한 사용자가 팀원이 아니면 403
     private void validateMember(long userId, long repoId) {
         if (taskRepository.countTeam(repoId) == 0) {
