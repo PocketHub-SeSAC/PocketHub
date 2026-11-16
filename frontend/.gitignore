@@ -1,8 +1,14 @@
 node_modules
-dist
+.next
+out
 # 환경 변수: 실제 값은 커밋하지 않는다 (.env.example 만 올림)
 .env
 .env.local
 .env.*.local
 # Vercel CLI 연결 정보
 .vercel
+# Playwright 실행 결과
+test-results
+playwright-report
+# next dev 가 자동으로 만드는 AI 도구 안내 파일
+AGENTS.md

@@ -1,0 +1,27 @@
+### 파일 업로드 커밋 - repoId 1 저장소, 엑세스 토큰 필요
+POST http://localhost:8080/api/v1/teams/1/commits
+#Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=multiBoundary
+
+--multiBoundary
+Content-Disposition: form-data; name="commitMessage"
+
+업로드 테스트 커밋입니다.
+--multiBoundary
+Content-Disposition: form-data; name="files"; filename="sample1.txt"
+Content-Type: text/plain
+
+first file sample
+--multiBoundary
+Content-Disposition: form-data; name="files"; filename="sample2.txt"
+Content-Type: text/plain
+
+second file sample
+--multiBoundary--
+
+
+### 파일 삭제 커밋 - 이전 상태 파일로 실패
+DELETE http://localhost:8080/api/v1/teams/1/commits/1?commitMessage=DELETECOMMIT
+
+### 파일 삭제 커밋 - 최신 파일 ID
+DELETE http://localhost:8080/api/v1/teams/1/commits/6?commitMessage=DELETECOMMIT
