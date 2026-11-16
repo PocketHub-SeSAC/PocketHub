@@ -20,6 +20,7 @@ import com.pockethub.pr.repository.PrRepository.TaskRow;
 import com.pockethub.task.domain.Task;
 import com.pockethub.task.domain.TaskPriority;
 import com.pockethub.task.repository.TaskRepository;
+import com.pockethub.user.domain.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -384,11 +385,19 @@ class PrServiceTest {
     }
 
     private static Commit commit(String commitId, long repoId, long userId) {
-        return new Commit(commitId, repoId, userId, "커밋 " + commitId);
+        return new Commit(commitId, repoId, user(userId), "커밋 " + commitId);
     }
 
+    // id 는 DB 가 매기는 값이라 테스트에서는 직접 넣는다
+    private static User user(long userId) {
+        User user = new User("user" + userId + "@test.com", "password", "user" + userId);
+        ReflectionTestUtils.setField(user, "id", userId);
+        return user;
+    }
+
+    // 파일은 커밋 ID 로 묶이므로 작성자는 상관없다
     private static File file(String commitId, String name, FileState state) {
-        return new File("/uploads/" + name, name, state, 1.0f, true, REPO_ID, commitId, null);
+        return new File("/uploads/" + name, name, state, 1.0f, true, REPO_ID, commit(commitId, REPO_ID, AUTHOR_ID), null);
     }
 
     private static PrCreateRequest createRequest(String title, List<String> commitIds) {
