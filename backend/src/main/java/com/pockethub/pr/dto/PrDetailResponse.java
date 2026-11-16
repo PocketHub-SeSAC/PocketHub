@@ -23,7 +23,7 @@ public class PrDetailResponse extends PrSummaryResponse {
         this.description = pr.getText();
 
         Map<String, Long> fileCounts = files.stream()
-                .collect(Collectors.groupingBy(File::getCommitId, Collectors.counting()));
+                .collect(Collectors.groupingBy(f -> f.getCommit().getCommitId(), Collectors.counting()));
         this.commits = commits.stream()
                 .map(commit -> CommitItem.of(commit, fileCounts.getOrDefault(commit.getCommitId(), 0L)))
                 .toList();
@@ -33,7 +33,7 @@ public class PrDetailResponse extends PrSummaryResponse {
     public record CommitItem(String commitId, String commitMessage, Long userId,
                              LocalDateTime createdAt, long fileCount) {
         static CommitItem of(Commit commit, long fileCount) {
-            return new CommitItem(commit.getCommitId(), commit.getMessage(), commit.getUserId(),
+            return new CommitItem(commit.getCommitId(), commit.getMessage(), commit.getUser().getId(),
                     commit.getCreatedAt(), fileCount);
         }
     }
@@ -41,7 +41,7 @@ public class PrDetailResponse extends PrSummaryResponse {
     // action: ADD·UPDATE·DELETE (DB file.state)
     public record FileItem(Long fileId, String commitId, String name, Float size, String action) {
         static FileItem of(File file) {
-            return new FileItem(file.getFileId(), file.getCommitId(), file.getOriginalName(),
+            return new FileItem(file.getFileId(), file.getCommit().getCommitId(), file.getOriginalName(),
                     file.getSize(), file.getState().name());
         }
     }

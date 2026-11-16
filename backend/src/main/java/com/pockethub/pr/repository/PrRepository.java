@@ -29,7 +29,7 @@ public interface PrRepository extends JpaRepository<Pr, Long> {
     List<Commit> findCommitsByPrId(@Param("prId") long prId);
 
     // 커밋들에 포함된 파일
-    @Query("select f from File f where f.commitId in :commitIds order by f.fileId")
+    @Query("select f from File f where f.commit.commitId in :commitIds order by f.fileId")
     List<File> findFilesByCommitIds(@Param("commitIds") Collection<String> commitIds);
 
     // TODO : User 엔티티가 생기면 연관관계로 변경
