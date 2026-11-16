@@ -1,0 +1,20 @@
+name: "✨ Feature"
+description: "기능 추가"
+labels: ["feature"]
+body:
+  - type: textarea
+    attributes:
+      label: 📄 설명
+      description: 새로운 기능에 대한 설명을 작성해 주세요.
+      placeholder: 추가할 기능 간단 설명
+  - type: textarea
+    attributes:
+      label: ✅ 작업할 내용
+      description: 작업할 내용을 작성해 주세요.
+      placeholder: 최대한 세분화 해서 적어주세요!
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 🙋🏻 참고 사항
+      description: 참고 사항 있다면 작성해 주세요.
