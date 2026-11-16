@@ -46,4 +46,23 @@ public class Task {
         this.endAt = endAt;
         this.status = TaskStatus.TODO;
     }
+
+    // 값이 들어온 것만 바꾼다 (null 이면 기존 값 유지, 상태는 별도 API 에서 변경)
+    public void update(String title, String text, TaskPriority priority, Long managerId, LocalDateTime endAt) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (text != null) {
+            this.text = text;
+        }
+        if (priority != null) {
+            this.priority = priority;
+        }
+        if (managerId != null) {
+            this.managerId = managerId;
+        }
+        if (endAt != null) {
+            this.endAt = endAt;
+        }
+    }
 }

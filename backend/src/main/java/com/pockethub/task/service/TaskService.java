@@ -8,11 +8,14 @@ import com.pockethub.task.domain.TaskStatus;
 import com.pockethub.task.dto.TaskRequest;
 import com.pockethub.task.dto.TaskResponse;
 import com.pockethub.task.repository.TaskRepository;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.pockethub.task.dto.TaskUpdateRequest;
 
 @Service
 public class TaskService {
@@ -55,8 +58,26 @@ public class TaskService {
     public TaskResponse findTask(long userId, long repoId, long taskId) {
         validateMember(userId, repoId);
 
-    Task task = taskRepository.findByTaskIdAndRepoId(taskId, repoId)
-        .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
+        Task task = taskRepository.findByTaskIdAndRepoId(taskId, repoId)
+                .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
+        return TaskResponse.from(task);
+    }
+
+    @Transactional
+    public TaskResponse updateTask(long userId, long repoId, long taskId, TaskUpdateRequest request) {
+        validateMember(userId, repoId);
+
+        Task task = taskRepository.findByTaskIdAndRepoId(taskId, repoId)
+                .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
+
+        validateManager(request.getManagerId(), repoId);
+        // 작업일 = 생성일
+        validateEndAt(request.getEndAt(), task.getCreatedAt().toLocalDate());
+
+        task.update(
+                request.getTitle(), request.getText(), request.getPriority(),
+                request.getManagerId(), toDateTime(request.getEndAt())
+        );
         return TaskResponse.from(task);
     }
 
