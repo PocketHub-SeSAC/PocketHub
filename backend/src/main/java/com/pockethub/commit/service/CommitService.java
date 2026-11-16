@@ -87,7 +87,7 @@ public class CommitService {
         return commitId;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<CommitDTO> findCommitList(long repoId, Pageable pageable) {
         Page<CommitDTO> commitList = commitRepository.findByRepoId(repoId, pageable)
                 .map(CommitDTO::new);
@@ -95,12 +95,12 @@ public class CommitService {
         return commitList;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public CommitDTO findCommitDetail(String commitId, long repoId) {
         Commit commit = commitRepository.findByCommitIdAndRepoId(commitId, repoId);
 
         if(commit == null) {
-            throw new NotFoundException("조히하려는 커밋이 존재하지 않습니다.");
+            throw new NotFoundException("조회하려는 커밋이 존재하지 않습니다.");
         }
 
         return new CommitDTO(commit);

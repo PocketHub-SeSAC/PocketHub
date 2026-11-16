@@ -2,6 +2,7 @@ package com.pockethub.commit.controller;
 
 import com.pockethub.commit.dto.CommitDTO;
 import com.pockethub.commit.service.CommitService;
+import com.pockethub.common.response.PageResponse;
 import com.pockethub.common.response.ResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -70,12 +71,9 @@ public class CommitController {
         Page<CommitDTO> commitList = commitService.findCommitList(repoId, pageable);
 
         return ResponseEntity.ok(new ResponseDTO(Map.of(
-                "commits", commitList.getContent(),
-                "page", commitList.getNumber(),
-                "size", commitList.getSize(),
-                "totalElements", commitList.getTotalElements(),
-                "totalPages", commitList.getTotalPages()
-        ), "Commit 목록 조회에 성공했습니다."));
+                "commits", commitList.getContent()
+            ), "Commit 목록 조회에 성공했습니다.", new PageResponse<>(commitList)
+        ));
     }
 
     @GetMapping("/{commitId}")
