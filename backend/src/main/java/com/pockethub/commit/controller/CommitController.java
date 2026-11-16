@@ -3,6 +3,10 @@ package com.pockethub.commit.controller;
 import com.pockethub.commit.dto.CommitDTO;
 import com.pockethub.commit.service.CommitService;
 import com.pockethub.common.response.ResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -56,5 +60,21 @@ public class CommitController {
                         "file", commitDTO.getFiles().getFirst()
                 ))
         );
+    }
+
+    @GetMapping
+    public ResponseEntity<ResponseDTO> findCommitList(
+            @PathVariable("teamId") long repoId,
+            @PageableDefault(size=10, page=0, sort="createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<CommitDTO> commitList = commitService.findCommitList(repoId, pageable);
+
+        return ResponseEntity.ok(new ResponseDTO(Map.of(
+                "commits", commitList.getContent(),
+                "page", commitList.getNumber(),
+                "size", commitList.getSize(),
+                "totalElements", commitList.getTotalElements(),
+                "totalPages", commitList.getTotalPages()
+        ), "Commit 목록 조회에 성공했습니다."));
     }
 }

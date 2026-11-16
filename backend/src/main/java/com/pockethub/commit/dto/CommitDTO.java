@@ -1,5 +1,6 @@
 package com.pockethub.commit.dto;
 
+import com.pockethub.commit.domain.Commit;
 import com.pockethub.file.dto.FileDTO;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,5 +18,13 @@ public class CommitDTO {
     public CommitDTO(String commitId, String commitMessage) {
         this.commitId = commitId;
         this.commitMessage = commitMessage;
+    }
+
+    public CommitDTO(Commit commit) {
+        this.commitId = commit.getCommitId();
+        this.commitMessage = commit.getMessage();
+        this.userId = commit.getUserId();
+        this.files = commit.getFiles().stream()
+                .map(FileDTO::new).toList();
     }
 }

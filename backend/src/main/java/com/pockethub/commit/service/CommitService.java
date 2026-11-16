@@ -7,6 +7,8 @@ import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.repository.FileRepository;
 import com.pockethub.file.service.FileService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,5 +84,13 @@ public class CommitService {
         }
 
         return commitId;
+    }
+
+    @Transactional
+    public Page<CommitDTO> findCommitList(long repoId, Pageable pageable) {
+        Page<CommitDTO> commitList = commitRepository.findByRepoId(repoId, pageable)
+                .map(CommitDTO::new);
+
+        return commitList;
     }
 }
