@@ -2,6 +2,9 @@ package com.pockethub.pr.service;
 
 import com.pockethub.commit.domain.Commit;
 import com.pockethub.commit.repository.CommitRepository;
+import com.pockethub.common.exception.ConflictException;
+import com.pockethub.common.exception.ForbiddenException;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.common.validation.ValidationRules;
 import com.pockethub.file.domain.File;
 import com.pockethub.pr.domain.Pr;
@@ -16,10 +19,9 @@ import com.pockethub.pr.repository.PrRepository;
 import com.pockethub.pr.repository.PrRepository.MemberRow;
 import com.pockethub.pr.repository.PrRepository.ReviewCountRow;
 import com.pockethub.pr.repository.PrRepository.TaskRow;
-import org.springframework.http.HttpStatus;
+import com.pockethub.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -34,13 +36,15 @@ import java.util.stream.Collectors;
 public class PrService {
     private final PrRepository prRepository;
     private final CommitRepository commitRepository;
+    private final TaskRepository taskRepository;
 
-    public PrService(PrRepository prRepository, CommitRepository commitRepository) {
+    public PrService(PrRepository prRepository, CommitRepository commitRepository, TaskRepository taskRepository) {
         this.prRepository = prRepository;
         this.commitRepository = commitRepository;
+        this.taskRepository = taskRepository;
     }
 
-    // TODO : 팀원 여부 확인, Task 존재·소속 확인은 member·task 기능이 생기면 추가
+    // TODO : 팀원 여부 확인(403)은 member·team 기능이 생기면 추가
     @Transactional
     public PrDetailResponse createPr(long userId, long repoId, PrCreateRequest request) {
         String title = validateTitle(request.getTitle());
@@ -49,6 +53,7 @@ public class PrService {
         if (request.getTaskId() == null) {
             throw new IllegalArgumentException("연결할 Task를 골라 주세요.");
         }
+        validateTask(repoId, request.getTaskId());
 
         List<Commit> commits = findCommitsForPr(userId, repoId, commitIds);
 
@@ -92,20 +97,30 @@ public class PrService {
         prRepository.delete(pr);
     }
 
+    // 다른 팀 Task 도 존재 여부를 드러내지 않도록 없는 Task 와 같은 404
+    private void validateTask(long repoId, long taskId) {
+        boolean sameTeam = taskRepository.findById(taskId)
+                .map(task -> task.getRepoId() == repoId)
+                .orElse(false);
+        if (!sameTeam) {
+            throw new NotFoundException("Task를 찾을 수 없습니다.");
+        }
+    }
+
     // 다른 팀 PR 은 존재 여부를 드러내지 않도록 없는 PR 과 같은 404
     private Pr findPr(long repoId, long prId) {
         return prRepository.findByPrIdAndRepoId(prId, repoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("PR을 찾을 수 없습니다."));
     }
 
     // 수정·삭제 공통 검사: 존재(404) → 리뷰 대기 상태(409) → 작성자 본인(403)
     private Pr findEditablePr(long userId, long repoId, long prId, String action) {
         Pr pr = findPr(repoId, prId);
         if (!pr.isOpen()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 PR은 " + action + "할 수 없어요.");
+            throw new ConflictException("이미 처리된 PR은 " + action + "할 수 없어요.");
         }
         if (!pr.isWrittenBy(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "내가 작성한 PR만 " + action + "할 수 있어요.");
+            throw new ForbiddenException("내가 작성한 PR만 " + action + "할 수 있어요.");
         }
         return pr;
     }

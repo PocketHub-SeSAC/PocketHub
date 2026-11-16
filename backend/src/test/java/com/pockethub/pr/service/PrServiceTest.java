@@ -3,6 +3,9 @@ package com.pockethub.pr.service;
 import com.pockethub.commit.domain.Commit;
 import com.pockethub.commit.dto.FileState;
 import com.pockethub.commit.repository.CommitRepository;
+import com.pockethub.common.exception.ConflictException;
+import com.pockethub.common.exception.ForbiddenException;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.pr.domain.Pr;
 import com.pockethub.pr.domain.PrState;
@@ -14,6 +17,9 @@ import com.pockethub.pr.repository.PrRepository;
 import com.pockethub.pr.repository.PrRepository.MemberRow;
 import com.pockethub.pr.repository.PrRepository.ReviewCountRow;
 import com.pockethub.pr.repository.PrRepository.TaskRow;
+import com.pockethub.task.domain.Task;
+import com.pockethub.task.domain.TaskPriority;
+import com.pockethub.task.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,9 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -52,12 +56,15 @@ class PrServiceTest {
     private PrRepository prRepository;
     @Mock
     private CommitRepository commitRepository;
+    @Mock
+    private TaskRepository taskRepository;
     @InjectMocks
     private PrService prService;
 
     // 작성자·Task·리뷰 수 조회는 모든 응답에서 쓰므로 기본값으로 깔아 둔다
     @BeforeEach
     void stubRelated() {
+        lenient().when(taskRepository.findById(TASK_ID)).thenReturn(Optional.of(taskEntity(REPO_ID)));
         lenient().when(prRepository.findMembers(anyCollection())).thenReturn(List.of(
                 member(AUTHOR_ID, "새싹"), member(OTHER_USER_ID, "달팽이")));
         lenient().when(prRepository.findTasks(anyCollection())).thenReturn(List.of(task(TASK_ID, "로그인 화면", "DOING")));
@@ -121,6 +128,26 @@ class PrServiceTest {
             assertThatThrownBy(() -> prService.createPr(AUTHOR_ID, REPO_ID, request))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("연결할 Task를 골라 주세요.");
+        }
+
+        @Test
+        @DisplayName("없는 Task 면 404, 저장하지 않는다")
+        void taskNotFound() {
+            when(taskRepository.findById(TASK_ID)).thenReturn(Optional.empty());
+
+            assertError(() -> prService.createPr(AUTHOR_ID, REPO_ID, createRequest("PR", List.of("c1"))),
+                    NotFoundException.class, "Task를 찾을 수 없습니다.");
+            verify(prRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("다른 팀 Task 는 없는 Task 와 같은 404")
+        void otherTeamTask() {
+            when(taskRepository.findById(TASK_ID)).thenReturn(Optional.of(taskEntity(OTHER_REPO_ID)));
+
+            assertError(() -> prService.createPr(AUTHOR_ID, REPO_ID, createRequest("PR", List.of("c1"))),
+                    NotFoundException.class, "Task를 찾을 수 없습니다.");
+            verify(prRepository, never()).save(any());
         }
 
         @Test
@@ -226,7 +253,7 @@ class PrServiceTest {
         void notFound() {
             when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.empty());
 
-            assertStatus(() -> prService.getPr(REPO_ID, PR_ID), HttpStatus.NOT_FOUND, "PR을 찾을 수 없습니다.");
+            assertError(() -> prService.getPr(REPO_ID, PR_ID), NotFoundException.class, "PR을 찾을 수 없습니다.");
         }
 
         @Test
@@ -265,8 +292,8 @@ class PrServiceTest {
             Pr pr = pr(PR_ID, AUTHOR_ID);
             when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
 
-            assertStatus(() -> prService.updatePr(OTHER_USER_ID, REPO_ID, PR_ID, updateRequest("x", null)),
-                    HttpStatus.FORBIDDEN, "내가 작성한 PR만 수정할 수 있어요.");
+            assertError(() -> prService.updatePr(OTHER_USER_ID, REPO_ID, PR_ID, updateRequest("x", null)),
+                    ForbiddenException.class, "내가 작성한 PR만 수정할 수 있어요.");
             assertThat(pr.getTitle()).isEqualTo("PR");
         }
 
@@ -277,8 +304,8 @@ class PrServiceTest {
             ReflectionTestUtils.setField(pr, "state", PrState.APPROVE);
             when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
 
-            assertStatus(() -> prService.updatePr(OTHER_USER_ID, REPO_ID, PR_ID, updateRequest("x", null)),
-                    HttpStatus.CONFLICT, "이미 처리된 PR은 수정할 수 없어요.");
+            assertError(() -> prService.updatePr(OTHER_USER_ID, REPO_ID, PR_ID, updateRequest("x", null)),
+                    ConflictException.class, "이미 처리된 PR은 수정할 수 없어요.");
         }
 
         @Test
@@ -317,8 +344,8 @@ class PrServiceTest {
             Pr pr = pr(PR_ID, AUTHOR_ID);
             when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
 
-            assertStatus(() -> prService.deletePr(OTHER_USER_ID, REPO_ID, PR_ID),
-                    HttpStatus.FORBIDDEN, "내가 작성한 PR만 삭제할 수 있어요.");
+            assertError(() -> prService.deletePr(OTHER_USER_ID, REPO_ID, PR_ID),
+                    ForbiddenException.class, "내가 작성한 PR만 삭제할 수 있어요.");
             verify(prRepository, never()).delete(any());
         }
 
@@ -329,21 +356,22 @@ class PrServiceTest {
             ReflectionTestUtils.setField(pr, "state", PrState.DENIED);
             when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
 
-            assertStatus(() -> prService.deletePr(AUTHOR_ID, REPO_ID, PR_ID),
-                    HttpStatus.CONFLICT, "이미 처리된 PR은 삭제할 수 없어요.");
+            assertError(() -> prService.deletePr(AUTHOR_ID, REPO_ID, PR_ID),
+                    ConflictException.class, "이미 처리된 PR은 삭제할 수 없어요.");
             verify(prRepository, never()).delete(any());
         }
     }
 
     // ---------- 테스트 데이터 ----------
 
-    private static void assertStatus(org.assertj.core.api.ThrowableAssert.ThrowingCallable call,
-                                     HttpStatus status, String reason) {
-        assertThatThrownBy(call)
-                .isInstanceOfSatisfying(ResponseStatusException.class, e -> {
-                    assertThat(e.getStatusCode()).isEqualTo(status);
-                    assertThat(e.getReason()).isEqualTo(reason);
-                });
+    // 예외 종류가 곧 응답 코드 (NotFound 404, Forbidden 403, Conflict 409 — GlobalExceptionHandler)
+    private static void assertError(org.assertj.core.api.ThrowableAssert.ThrowingCallable call,
+                                    Class<? extends RuntimeException> type, String message) {
+        assertThatThrownBy(call).isExactlyInstanceOf(type).hasMessage(message);
+    }
+
+    private static Task taskEntity(long repoId) {
+        return new Task(repoId, "로그인 화면", "설명", TaskPriority.MEDIUM, null, null);
     }
 
     private static Pr pr(long prId, long authorId) {
