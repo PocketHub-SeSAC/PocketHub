@@ -38,9 +38,9 @@ public class CommitController {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new ResponseDTO(Map.of(
                         "commitId", commitDTO.getCommitId(),
-                        "commitMessage", commitDTO.getCommitMessage(),
+                        "message", commitDTO.getMessage(),
                         "files", commitDTO.getFiles()
-                ))
+                ), "파일이 업로드되었습니다.")
         );
     }
 
@@ -56,9 +56,9 @@ public class CommitController {
         return ResponseEntity.ok(
                 new ResponseDTO(Map.of(
                         "commitId", commitDTO.getCommitId(),
-                        "commitMessage", commitDTO.getCommitMessage(),
+                        "message", commitDTO.getMessage(),
                         "file", commitDTO.getFiles().getFirst()
-                ))
+                ), "파일이 삭제되었습니다.")
         );
     }
 
@@ -76,5 +76,23 @@ public class CommitController {
                 "totalElements", commitList.getTotalElements(),
                 "totalPages", commitList.getTotalPages()
         ), "Commit 목록 조회에 성공했습니다."));
+    }
+
+    @GetMapping("/{commitId}")
+    public ResponseEntity<ResponseDTO> findCommitDetail(
+            @PathVariable("teamId") long repoId,
+            @PathVariable("commitId") String commitId
+    ) {
+        CommitDTO commit = commitService.findCommitDetail(commitId, repoId);
+
+        return ResponseEntity.ok(new ResponseDTO(
+                Map.of(
+                        "commitId", commit.getCommitId(),
+                        "message", commit.getMessage(),
+                        "authorId", commit.getAuthorId(),
+                        "createdAt", commit.getCreatedAt(),
+                        "files", commit.getFiles()
+                ), "Commit 상세 조회에 성공했습니다."
+        ));
     }
 }

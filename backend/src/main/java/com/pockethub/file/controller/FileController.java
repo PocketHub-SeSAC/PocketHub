@@ -21,6 +21,9 @@ public class FileController {
 
     @GetMapping
     public ResponseEntity<ResponseDTO> searchLatestFiles(@PathVariable("teamId") long repoId) {
-        return ResponseEntity.ok(new ResponseDTO(Map.of("files", fileService.searchLatestFiles(repoId))));
+        return ResponseEntity.ok(new ResponseDTO(
+                Map.of("files", fileService.searchLatestFiles(repoId))
+                , "파일 목록 조회에 성공했습니다."
+        ));
     }
 }

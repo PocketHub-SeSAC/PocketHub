@@ -1,6 +1,7 @@
 package com.pockethub.file.service;
 
 import com.pockethub.commit.dto.FileState;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.repository.FileRepository;
@@ -93,7 +94,7 @@ public class FileService {
     public FileDTO deleteFile(long repoId, String commitId, long fileId) {
         File prevFile = fileRepository.findByFileIdAndRepoId(fileId, repoId);
         if(prevFile == null) {
-            throw new IllegalArgumentException("삭제하려는 파일이 존재하지 않습니다.");
+            throw new NotFoundException("삭제하려는 파일이 존재하지 않습니다.");
         }
         if(!prevFile.getIsLatest()) {
             throw new IllegalArgumentException("삭제하려는 파일이 최신 파일이 아닙니다. 최신 파일을 선택해주세요.");

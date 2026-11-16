@@ -3,6 +3,7 @@ package com.pockethub.commit.service;
 import com.pockethub.commit.domain.Commit;
 import com.pockethub.commit.dto.CommitDTO;
 import com.pockethub.commit.repository.CommitRepository;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.repository.FileRepository;
@@ -33,7 +34,7 @@ public class CommitService {
         // 1. commitId 생성
         String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
-        commitDTO.setUserId(userId);
+        commitDTO.setAuthorId(userId);
 
         try {
             // 2. 파일 업로드
@@ -60,7 +61,7 @@ public class CommitService {
     public CommitDTO deleteCommit(long userId, long repoId, long fileId, String commitMessage) {
         String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
-        commitDTO.setUserId(userId);
+        commitDTO.setAuthorId(userId);
 
         FileDTO info = fileService.deleteFile(repoId, commitId, fileId);
 
@@ -92,5 +93,16 @@ public class CommitService {
                 .map(CommitDTO::new);
 
         return commitList;
+    }
+
+    @Transactional
+    public CommitDTO findCommitDetail(String commitId, long repoId) {
+        Commit commit = commitRepository.findByCommitIdAndRepoId(commitId, repoId);
+
+        if(commit == null) {
+            throw new NotFoundException("조히하려는 커밋이 존재하지 않습니다.");
+        }
+
+        return new CommitDTO(commit);
     }
 }
