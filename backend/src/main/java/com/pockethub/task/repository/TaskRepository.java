@@ -1,11 +1,20 @@
 package com.pockethub.task.repository;
 
 import com.pockethub.task.domain.Task;
+import com.pockethub.task.domain.TaskStatus;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
+
+    List<Task> findByRepoIdOrderByTaskIdDesc(Long repoId);
+
+    List<Task> findByRepoIdAndStatusOrderByTaskIdDesc(Long repoId, TaskStatus status);
+
+    Optional<Task> findByTaskIdAndRepoId(Long taskId, Long repoId);
 
     // TODO : 팀(Repo·Collaborator) 엔티티가 dev 에 들어오면 팀 쪽 리포지토리로 옮긴다
     @Query(value = "SELECT COUNT(*) FROM repository WHERE repo_id = :repoId", nativeQuery = true)

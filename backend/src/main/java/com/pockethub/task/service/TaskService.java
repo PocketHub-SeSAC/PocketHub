@@ -4,11 +4,13 @@ import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.task.domain.Task;
 import com.pockethub.task.domain.TaskPriority;
+import com.pockethub.task.domain.TaskStatus;
 import com.pockethub.task.dto.TaskRequest;
 import com.pockethub.task.dto.TaskResponse;
 import com.pockethub.task.repository.TaskRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,28 @@ public class TaskService {
         Task task = taskRepository.save(new Task(
                 repoId, request.getTitle(), request.getText(), priority, request.getManagerId(), toDateTime(request.getEndAt())
         ));
+        return TaskResponse.from(task);
+    }
+
+    // status 가 없으면 전체, 최신 Task 가 먼저 오게 정렬
+    @Transactional(readOnly = true)
+    public List<TaskResponse> findTasks(long userId, long repoId, TaskStatus status) {
+        validateMember(userId, repoId);
+
+        List<Task> tasks = status == null
+                ? taskRepository.findByRepoIdOrderByTaskIdDesc(repoId)
+                : taskRepository.findByRepoIdAndStatusOrderByTaskIdDesc(repoId, status);
+        return tasks.stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TaskResponse findTask(long userId, long repoId, long taskId) {
+        validateMember(userId, repoId);
+
+    Task task = taskRepository.findByTaskIdAndRepoId(taskId, repoId)
+        .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
         return TaskResponse.from(task);
     }
 
