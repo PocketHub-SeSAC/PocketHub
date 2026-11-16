@@ -39,5 +39,10 @@ public class Repo {
         this.description = description;
         this.owner = owner;
     }
+
+    public void update(String name, String description){
+        if (name != null) this.name = name;
+        if (description != null) this.description = description;
+    }
 }
 
