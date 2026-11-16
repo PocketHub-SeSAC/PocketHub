@@ -10,6 +10,9 @@ import com.pockethub.team.repository.CollaboratorRepository;
 import com.pockethub.team.repository.RepoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.pockethub.common.exception.ConflictException;
+import com.pockethub.common.exception.ForbiddenException;
+import com.pockethub.common.exception.NotFoundException;
 
 import java.util.List;
 
@@ -21,7 +24,7 @@ public class TeamService {
 
     private final RepoRepository repoRepository;
     private final CollaboratorRepository collaboratorRepository;
-    private final UserRepository userRepository;   // 팀원이 올릴 것 (임시로 만들어 두기)
+    private final UserRepository userRepository;
 
     // ===== 팀 =====
 
@@ -35,7 +38,7 @@ public class TeamService {
         User owner = findUser(loginUserId);
 
         if (repoRepository.existsByName(request.getName())) {
-            throw new IllegalArgumentException("이미 사용 중인 팀 이름입니다.");
+            throw new ConflictException("이미 사용 중인 팀 이름입니다.");
         }
 
         Repo repo = repoRepository.save(request.toEntity(owner));
@@ -64,7 +67,7 @@ public class TeamService {
         if (request.getName() != null
                 && !request.getName().equals(repo.getName())
                 && repoRepository.existsByName(request.getName())) {
-            throw new IllegalArgumentException("이미 사용 중인 팀 이름입니다.");
+            throw new ConflictException("이미 사용 중인 팀 이름입니다.");
         }
 
 
@@ -95,7 +98,7 @@ public class TeamService {
         User user = findUser(request.getUserId());
 
         if (collaboratorRepository.existsByRepoAndUser(repo, user)) {
-            throw new IllegalArgumentException("이미 팀원입니다.");
+            throw new ConflictException("이미 팀원입니다.");
         }
         collaboratorRepository.save(new Collaborator(user, repo));
     }
@@ -112,7 +115,7 @@ public class TeamService {
         User user = findUser(userId);
 
         Collaborator collaborator = collaboratorRepository.findByRepoAndUser(repo, user)
-                .orElseThrow(() -> new IllegalArgumentException("팀원이 아닙니다."));
+                .orElseThrow(() -> new NotFoundException("팀원이 아닙니다."));
         collaboratorRepository.delete(collaborator);
     }
 
@@ -120,17 +123,19 @@ public class TeamService {
 
     private Repo findRepo(Long teamId) {
         return repoRepository.findById(teamId)
-                .orElseThrow(() -> new IllegalArgumentException("팀이 없습니다. id=" + teamId));
+                .orElseThrow(() -> new NotFoundException("팀을 찾을 수 없습니다."));
     }
 
     private User findUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("회원이 없습니다. id=" + userId));
+                .orElseThrow(() -> new NotFoundException("회원을 찾을 수 없습니다."));
     }
 
     private void checkOwner(Repo repo, Long loginUserId) {
         if (!repo.getOwner().getId().equals(loginUserId)) {
-            throw new IllegalArgumentException("팀장만 할 수 있습니다.");
+            throw new ForbiddenException("팀장만 할 수 있습니다.");
         }
     }
 }
+
+
