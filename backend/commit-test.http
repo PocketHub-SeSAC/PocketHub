@@ -26,7 +26,7 @@ DELETE http://localhost:8080/api/v1/teams/1/commits/99999?commitMessage=DeleteNo
 DELETE http://localhost:8080/api/v1/teams/1/commits/1?commitMessage=DeleteOldFile
 
 ### 파일 삭제 커밋 - 최신 파일 ID
-DELETE http://localhost:8080/api/v1/teams/1/commits/15?commitMessage=DELETECOMMIT
+DELETE http://localhost:8080/api/v1/teams/1/commits/22?commitMessage=DELETECOMMIT
 
 ### 커밋 목록 조회 - 1페이지
 GET http://localhost:8080/api/v1/teams/1/commits?page=0

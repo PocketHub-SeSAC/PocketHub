@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class FileDTO {
     private long fileId;
-    private String originalName;
+    private String fileName;
     private String filePath;
     private String commitId;
     private long repoId;
@@ -21,8 +21,8 @@ public class FileDTO {
     public FileDTO() {
     }
 
-    public FileDTO(String originalName, String filePath, String commitId, long repoId, float size) {
-        this.originalName = originalName;
+    public FileDTO(String fileName, String filePath, String commitId, long repoId, float size) {
+        this.fileName = fileName;
         this.filePath = filePath;
         this.repoId = repoId;
         this.commitId = commitId;
@@ -31,7 +31,7 @@ public class FileDTO {
 
     public FileDTO(File file) {
         this.fileId = file.getFileId();
-        this.originalName = file.getOriginalName();
+        this.fileName = file.getOriginalName();
         this.filePath = file.getFilePath();
         this.repoId = file.getRepoId();
         this.commitId = file.getCommitId();

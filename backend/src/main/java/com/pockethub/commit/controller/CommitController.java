@@ -87,7 +87,8 @@ public class CommitController {
                 Map.of(
                         "commitId", commit.getCommitId(),
                         "message", commit.getMessage(),
-                        "authorId", commit.getAuthorId(),
+                        "authorId", commit.getUser().getUserId(),
+                        "authorNickname", commit.getUser().getNickname(),
                         "createdAt", commit.getCreatedAt(),
                         "files", commit.getFiles()
                 ), "Commit 상세 조회에 성공했습니다."

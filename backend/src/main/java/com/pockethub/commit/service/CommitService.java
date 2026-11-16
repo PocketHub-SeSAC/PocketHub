@@ -8,6 +8,9 @@ import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.repository.FileRepository;
 import com.pockethub.file.service.FileService;
+import com.pockethub.user.domain.User;
+import com.pockethub.user.dto.UserResponse;
+import com.pockethub.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,11 +24,13 @@ import java.util.UUID;
 public class CommitService {
     private final CommitRepository commitRepository;
     private final FileRepository fileRepository;
+    private final UserRepository userRepository;
     private final FileService fileService;
 
-    public CommitService(CommitRepository commitRepository, FileRepository fileRepository, FileService fileService) {
+    public CommitService(CommitRepository commitRepository, FileRepository fileRepository, UserRepository userRepository, FileService fileService) {
         this.commitRepository = commitRepository;
         this.fileRepository = fileRepository;
+        this.userRepository = userRepository;
         this.fileService = fileService;
     }
 
@@ -34,14 +39,16 @@ public class CommitService {
         // 1. commitId 생성
         String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
-        commitDTO.setAuthorId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("유저 정보가 존재하지 않습니다."));
+        commitDTO.setUser(UserResponse.from(user));
 
         try {
             // 2. 파일 업로드
             List<FileDTO> fileList = fileService.uploadFiles(repoId, commitId, files);
 
             // 3. DB 에 추가
-            commitRepository.save(new Commit(commitId, repoId, userId, commitMessage));
+            commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
             for(FileDTO f : fileList) {
                 File file = fileRepository.save(new File(f));
                 f.setFileId(file.getFileId());
@@ -61,11 +68,13 @@ public class CommitService {
     public CommitDTO deleteCommit(long userId, long repoId, long fileId, String commitMessage) {
         String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
-        commitDTO.setAuthorId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("유저 정보가 존재하지 않습니다."));
+        commitDTO.setUser(UserResponse.from(user));
 
         FileDTO info = fileService.deleteFile(repoId, commitId, fileId);
 
-        commitRepository.save(new Commit(commitId, repoId, userId, commitMessage));
+        commitRepository.save(new Commit(commitId, repoId, user, commitMessage));
         File file = fileRepository.save(new File(info));
 
         info.setFileId(file.getFileId());

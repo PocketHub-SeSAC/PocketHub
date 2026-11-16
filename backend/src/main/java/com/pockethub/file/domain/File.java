@@ -51,7 +51,7 @@ public class File {
 
     public File(FileDTO dto) {
         this.filePath = dto.getFilePath();
-        this.originalName = dto.getOriginalName();
+        this.originalName = dto.getFileName();
         this.state = dto.getState();
         this.size = dto.getSize();
         this.isLatest = dto.getIsLatest();

@@ -73,7 +73,7 @@ public class FileService {
 
         FileDTO info = new FileDTO(fileName, relativePath, commitId, repoId, file.getSize() / 1024.0f);
 
-        File prevFile = fileRepository.findFirstByOriginalNameAndIsLatestOrderByFileIdDesc(info.getOriginalName(), true);
+        File prevFile = fileRepository.findFirstByOriginalNameAndIsLatestOrderByFileIdDesc(info.getFileName(), true);
         info.setIsLatest(true);
         if(prevFile != null) {
             prevFile.setIsLatest(false);
