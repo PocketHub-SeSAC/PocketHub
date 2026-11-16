@@ -2,7 +2,7 @@ package com.pockethub.team.repository;
 
 import com.pockethub.team.domain.Collaborator;
 import com.pockethub.team.domain.Repo;
-import com.pockethub.team.domain.User;
+import com.pockethub.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;

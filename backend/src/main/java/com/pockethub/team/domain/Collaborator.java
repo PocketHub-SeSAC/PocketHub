@@ -1,5 +1,6 @@
 package com.pockethub.team.domain;
 
+import com.pockethub.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

@@ -1,13 +1,13 @@
 package com.pockethub.team.service;
 
+import com.pockethub.user.domain.User;
+import com.pockethub.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import com.pockethub.team.domain.Collaborator;
 import com.pockethub.team.domain.Repo;
-import com.pockethub.team.domain.User;
 import com.pockethub.team.dto.*;
 import com.pockethub.team.repository.CollaboratorRepository;
 import com.pockethub.team.repository.RepoRepository;
-import com.pockethub.team.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

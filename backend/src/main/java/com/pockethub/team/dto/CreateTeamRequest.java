@@ -3,7 +3,7 @@ package com.pockethub.team.dto;
 // 팀 생성
 
 import com.pockethub.team.domain.Repo;
-import com.pockethub.team.domain.User;
+import com.pockethub.user.domain.User;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

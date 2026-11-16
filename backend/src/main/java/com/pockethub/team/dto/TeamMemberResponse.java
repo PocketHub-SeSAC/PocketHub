@@ -3,7 +3,7 @@ package com.pockethub.team.dto;
 // 팀원 목록 응답
 
 import com.pockethub.team.domain.Collaborator;
-import com.pockethub.team.domain.User;
+import com.pockethub.user.domain.User;
 import lombok.Getter;
 
 
