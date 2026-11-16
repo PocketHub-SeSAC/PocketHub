@@ -91,8 +91,10 @@ public class FileService {
 
     @Transactional
     public FileDTO deleteFile(long repoId, String commitId, long fileId) {
-        File prevFile = fileRepository.findById(fileId)
-                .orElseThrow(() -> new IllegalArgumentException("삭제하려는 파일이 존재하지 않습니다."));
+        File prevFile = fileRepository.findByFileIdAndRepoId(fileId, repoId);
+        if(prevFile == null) {
+            throw new IllegalArgumentException("삭제하려는 파일이 존재하지 않습니다.");
+        }
         if(!prevFile.getIsLatest()) {
             throw new IllegalArgumentException("삭제하려는 파일이 최신 파일이 아닙니다. 최신 파일을 선택해주세요.");
         }
