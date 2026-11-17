@@ -100,9 +100,9 @@ public class CommitService {
     }
 
     @Transactional(readOnly = true)
-    public Page<CommitDTO> findCommitList(long repoId, Pageable pageable) {
-        Page<CommitDTO> commitList = commitRepository.findByRepoId(repoId, pageable)
-                .map(CommitDTO::new);
+    public Page<CommitDTO> findCommitList(long repoId, Pageable pageable, boolean usePr) {
+        Page<CommitDTO> commitList = usePr ? commitRepository.findByRepoIdAndPrIdIsNull(repoId, pageable).map(CommitDTO::new)
+            : commitRepository.findByRepoId(repoId, pageable).map(CommitDTO::new);
 
         return commitList;
     }
