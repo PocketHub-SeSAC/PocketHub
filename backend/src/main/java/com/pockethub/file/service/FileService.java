@@ -135,7 +135,7 @@ public class FileService {
                         try {
                             Files.deleteIfExists(p);
                         } catch (IOException e) {
-                            throw new RuntimeException(e);
+                            throw new FileNotCleanupException("임시 저장된 파일을 삭제하는 도중 문제가 발생했습니다.");
                         }
                     });
             Files.deleteIfExists(savedPath);
