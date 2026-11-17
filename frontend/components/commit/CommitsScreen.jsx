@@ -38,7 +38,6 @@ function CommitSide({ teamId, commitId, me, onClose }) {
             <>
               <div className='who' style={{ fontSize: 16, whiteSpace: 'normal' }}><Icon name='commit' />{c.message}</div>
               <dl className='kv'>
-                <dt>종류</dt><dd><span className={TYPE[c.type][1]}>{TYPE[c.type][0]}</span></dd>
                 <dt>작성자</dt><dd><Who user={c.author} me={c.author?.id === me.id} /></dd>
                 <dt>생성일</dt><dd>{formatDateTime(c.createdAt)}</dd>
                 <dt>ID</dt><dd><span className='id'>{c.hash}</span></dd>
@@ -73,7 +72,7 @@ function CommitSide({ teamId, commitId, me, onClose }) {
 export default function CommitsScreen() {
   const { teamId, me } = useTeam();
   const [q, setQuery] = useQuery();
-  const commits = useAsync(() => getCommits(teamId), [teamId]);
+  const commits = useAsync(() => getCommits(teamId, {pgae : 0}), [teamId]);
   const files = useAsync(() => getFiles(teamId), [teamId]);
   const commitId = q.get('commit');
 
@@ -83,17 +82,16 @@ export default function CommitsScreen() {
         onUpload={() => setQuery({ modal: 'upload' })} />
       <div className={`split ${commitId ? 'has-side' : ''}`}>
         <div className='panel'>
-          <div className='crow fhead' style={{ borderTop: 0 }}><span>종류</span><span>커밋 메시지</span><span>작성자</span><span>생성일</span><span>ID</span></div>
+          <div className='crow fhead' style={{ borderTop: 0 }}><span>ID</span><span>커밋 메시지</span><span>작성자</span><span>생성일</span></div>
           <ListState loading={commits.loading} error={commits.error} onRetry={() => commits.reload()}
             empty={commits.data && !commits.data.length} emptyText='아직 커밋이 없어요. 파일을 올리면 커밋이 만들어져요.'>
             {(commits.data || []).map((c) => (
               <a key={c.id} className={`crow ${String(c.id) === commitId ? 'sel' : ''}`} href={`?commit=${c.id}`}
                 onClick={(e) => { e.preventDefault(); setQuery({ commit: c.id }); }}>
-                <span className={TYPE[c.type][1]}>{TYPE[c.type][0]}</span>
+                <span className='id'>{c.hash}</span>
                 <span>{c.message}</span>
                 <Who user={c.author} />
                 <span className='muted'>{formatDate(c.createdAt)}</span>
-                <span className='id'>{c.hash}</span>
               </a>
             ))}
           </ListState>

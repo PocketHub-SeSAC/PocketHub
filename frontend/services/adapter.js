@@ -78,16 +78,23 @@ export function normalizeFile(f) {
     name: pick(f, 'name', 'fileName', 'originalName') || '',
     size: Number(pick(f, 'size', 'fileSize') || 0),
     version: Number(pick(f, 'version', 'latestVersion') || 1),
-    uploader: normalizeMember(pick(f, 'uploader', 'uploadedBy', 'member')),
+    type: pick(f, 'state'),
+    // uploader: normalizeMember(pick(f, 'uploader', 'uploadedBy', 'member')),
+    // TODO : 아이콘 정보 때문에 백 쪽을 바꿔야할 것 같긴 함
+    uploader: {
+      id : pick(f, 'uploaderId'),
+      nickname : pick(f, 'uploaderNickname')
+    },
     uploadedAt: pick(f, 'uploadedAt', 'updatedAt', 'createdAt'),
     commitId: pick(f, 'commitId'),
-    versions: Array.isArray(f.versions) ? f.versions.map((v) => ({
+    versions : []
+    /*versions: Array.isArray(f.versions) ? f.versions.map((v) => ({
       version: Number(pick(v, 'version')),
       commitId: pick(v, 'commitId'),
       size: Number(pick(v, 'size', 'fileSize') || 0),
       uploader: normalizeMember(pick(v, 'uploader', 'uploadedBy')),
       uploadedAt: pick(v, 'uploadedAt', 'createdAt'),
-    })) : [],
+    })) : [],*/
   };
 }
 export const normalizeFiles = (x) => list(x, normalizeFile);
@@ -99,7 +106,7 @@ export function normalizeCommit(c) {
     hash: String(pick(c, 'hash', 'shortId', 'commitHash') || pick(c, 'id', 'commitId') || ''),
     message: pick(c, 'message', 'commitMessage') || '',
     type: COMMIT_TYPES[String(pick(c, 'type', 'kind') || 'UPLOAD').toUpperCase()] || 'UPLOAD',
-    author: normalizeMember(pick(c, 'author', 'member', 'committer')),
+    author: normalizeMember(pick(c, 'author', 'user', 'committer')),
     createdAt: pick(c, 'createdAt'),
     prId: pick(c, 'prId', 'pullId', 'pullRequestId') ?? null,
     fileCount: pick(c, 'fileCount'),

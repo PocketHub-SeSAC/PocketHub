@@ -243,13 +243,13 @@ main { padding: 28px 0 80px; }
 .toolbar .tabs { margin: 0; }
 .split { display: grid; grid-template-columns: 1fr; gap: 28px; align-items: start; }
 .split.has-side { grid-template-columns: minmax(0, 1fr) 390px; }
-.frow, .fhead { display: grid; grid-template-columns: auto minmax(0, 1fr) 84px 130px 100px; gap: 12px; align-items: center; padding: 10px 14px; }
+.frow, .fhead { display: grid; grid-template-columns: auto 84px minmax(0, 1fr) 84px 130px 100px; gap: 12px; align-items: center; padding: 10px 14px; }
 .frow, .crow { text-decoration: none; color: inherit; cursor: pointer; }
 .frow { border-top: 2px solid var(--tint); }
 .fhead { color: var(--ink-soft); font-weight: 700; font-size: 14px; }
 .frow .nm { font-weight: 700; display: inline-flex; gap: 8px; align-items: center; min-width: 0; }
 .frow .nm span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.crow { display: grid; grid-template-columns: 70px minmax(0, 1fr) 130px 100px 72px; gap: 12px; align-items: center; padding: 10px 14px; border-top: 2px solid var(--tint); }
+.crow { display: grid; grid-template-columns: 100px minmax(0, 1fr) 130px 100px; gap: 12px; align-items: center; padding: 10px 14px; border-top: 2px solid var(--tint); }
 .crow .id { font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .frow.sel, .crow.sel { background: var(--ink); color: var(--on-ink); }
 .frow.sel .muted, .crow.sel .muted, .crow.sel .id { color: var(--tint); }

@@ -71,7 +71,8 @@ public class FileDTO {
           "fileSize", fileSize,
           "uploaderId", uploaderId,
           "uploaderNickname", uploaderNickname,
-          "uploadedAt", uploadedAt
+          "uploadedAt", uploadedAt,
+                "state", state
         );
     }
 }
