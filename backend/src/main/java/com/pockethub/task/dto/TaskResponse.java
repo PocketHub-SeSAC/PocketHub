@@ -26,7 +26,7 @@ public class TaskResponse {
         this.description = task.getText();
         this.status = task.getStatus();
         this.assigneeId = task.getManagerId();
-        this.startDate = null;
+        this.startDate = task.getCreatedAt() != null ? task.getCreatedAt().toLocalDate() : null;
         this.dueDate = task.getEndAt() != null ? task.getEndAt().toLocalDate() : null;
         this.priority = task.getPriority();
     }
