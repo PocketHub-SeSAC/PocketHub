@@ -82,6 +82,18 @@ public class TaskService {
         return TaskResponse.from(task);
     }
 
+    //테스크 삭제
+    @Transactional
+    public void deleteTask(long userId, long repoId, long taskId) {
+        validateMember(userId, repoId);
+
+        Task task = taskRepository.findByTaskIdAndRepoId(taskId, repoId)
+                .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
+
+        taskRepository.delete(task);
+    }
+
+
     @Transactional
     public TaskResponse updateTaskStatus(long userId, long repoId, long taskId, TaskStatusRequest request) {
         validateMember(userId, repoId);
