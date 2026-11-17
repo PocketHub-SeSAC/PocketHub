@@ -1,6 +1,27 @@
+### 회원가입
+POST http://localhost:8080/api/v1/members
+Content-Type: application/json
+
+{
+  "email": "minji@pokethub.com",
+  "password": "pokethub1234!",
+  "nickname": "민지"
+}
+
+### 로그인
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "minji@pokethub.com",
+  "password": "pokethub1234!"
+}
+
+> {% client.global.set("accessToken", response.body.data.accessToken); %}
+
 ### 파일 업로드 커밋 - repoId 1 저장소
 POST http://localhost:8080/api/v1/teams/1/commits
-#Authorization: Bearer {{accessToken}}
+Authorization: Bearer {{accessToken}}
 Content-Type: multipart/form-data; boundary=multiBoundary
 
 --multiBoundary
@@ -21,30 +42,40 @@ second file sample
 
 ### 파일 삭제 커밋 - 파일이 존재하지 않음
 DELETE http://localhost:8080/api/v1/teams/1/commits/99999?commitMessage=DeleteNoFile
+Authorization: Bearer {{accessToken}}
 
 ### 파일 삭제 커밋 - 과거 상태 파일
 DELETE http://localhost:8080/api/v1/teams/1/commits/1?commitMessage=DeleteOldFile
+Authorization: Bearer {{accessToken}}
 
 ### 파일 삭제 커밋 - 최신 파일 ID
 DELETE http://localhost:8080/api/v1/teams/1/commits/22?commitMessage=DELETECOMMIT
+Authorization: Bearer {{accessToken}}
 
 ### 커밋 목록 조회 - 1페이지
 GET http://localhost:8080/api/v1/teams/1/commits?page=0
+Authorization: Bearer {{accessToken}}
 
 ### 커밋 목록 조회 - 2페이지
 GET http://localhost:8080/api/v1/teams/1/commits?page=1
+Authorization: Bearer {{accessToken}}
 
 ### 커밋 상세 조회 - 존재하지 않는 커밋
 GET http://localhost:8080/api/v1/teams/1/commits/aaa
+Authorization: Bearer {{accessToken}}
 
 ### 커밋 상세 조회
 GET http://localhost:8080/api/v1/teams/1/commits/6ad604de-14ff-4483-8d7e-fe68ad1dad9a
+Authorization: Bearer {{accessToken}}
 
 ### 커밋 파일 다운로드
 GET http://localhost:8080/api/v1/teams/1/commits/8a89659c-a015-48ff-b67c-e084d64f7491/download
+Authorization: Bearer {{accessToken}}
 
 ### 커밋 파일 다운로드 - 삭제 커밋
 GET http://localhost:8080/api/v1/teams/1/commits/be2255f1-b557-4f84-8116-8cbad14f83de/download
+Authorization: Bearer {{accessToken}}
 
 ### 커밋 파일 다운로드 - 존재하지 않는 커밋
 GET http://localhost:8080/api/v1/teams/1/commits/aaaaa/download
+Authorization: Bearer {{accessToken}}
