@@ -12,7 +12,7 @@ export const AUTH_API = {
 };
 
 export const signup = ({ email, password, nickname }) =>
-  request(AUTH_API.signup, { body: { email, password, nickname } }).then(normalizeMember);
+  request(AUTH_API.signup, { body: { email, password, nickname } }).then((res) => normalizeMember(res?.user ?? res)); // 백엔드 data.user, 목업은 감싸지 않음
 
 /** @returns {{ accessToken: string, member: {id,email,nickname} }} */
 export const login = ({ email, password }) =>
