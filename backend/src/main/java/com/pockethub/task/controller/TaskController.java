@@ -25,6 +25,7 @@ public class TaskController {
     private static final String FIND_MESSAGE = "Task를 조회했습니다.";
     private static final String UPDATE_MESSAGE = "Task를 수정했습니다.";
     private static final String UPDATE_STATUS_MESSAGE = "Task 상태를 변경했습니다.";
+    private static final String DELETE_MESSAGE = "Task를 삭제했습니다.";
 
     private final TaskService taskService;
 
@@ -88,6 +89,17 @@ public class TaskController {
     ) {
         TaskResponse task = taskService.updateTaskStatus(currentUserId(authentication), repoId, taskId, request);
         return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASK_KEY, task), UPDATE_STATUS_MESSAGE));
+    }
+
+    // API-027 Task 삭제
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<ResponseDTO> deleteTask(
+            Authentication authentication,
+            @PathVariable("teamId") long repoId,
+            @PathVariable("taskId") long taskId
+    ) {
+        taskService.deleteTask(currentUserId(authentication), repoId, taskId);
+        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, DELETE_MESSAGE));
     }
     // TODO : JWT 필터로 바뀐 뒤에도 principal 이 userId 인지 확인
     private long currentUserId(Authentication authentication) {
