@@ -42,3 +42,9 @@ GET http://localhost:8080/api/v1/teams/1/commits/6ad604de-14ff-4483-8d7e-fe68ad1
 
 ### 커밋 파일 다운로드
 GET http://localhost:8080/api/v1/teams/1/commits/8a89659c-a015-48ff-b67c-e084d64f7491/download
+
+### 커밋 파일 다운로드 - 삭제 커밋
+GET http://localhost:8080/api/v1/teams/1/commits/be2255f1-b557-4f84-8116-8cbad14f83de/download
+
+### 커밋 파일 다운로드 - 존재하지 않는 커밋
+GET http://localhost:8080/api/v1/teams/1/commits/aaaaa/download

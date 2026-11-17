@@ -1,5 +1,7 @@
 package com.pockethub.file.dto;
 
+import com.pockethub.common.exception.FileNotCleanupException;
+import com.pockethub.common.exception.FileNotCreatedException;
 import org.springframework.core.io.FileSystemResource;
 
 import java.io.File;
@@ -25,8 +27,7 @@ public class TempFileSystemResource extends FileSystemResource {
                 if(file.exists()) {
                     boolean deleted = file.delete();
                     if(!deleted) {
-                        // TODO : 커스텀 익셉션 추가
-                        throw new RuntimeException("임시 파일이 삭제되지 않았습니다!");
+                        throw new FileNotCleanupException("임시 파일이 삭제되지 않았습니다!");
                     }
                 }
             }

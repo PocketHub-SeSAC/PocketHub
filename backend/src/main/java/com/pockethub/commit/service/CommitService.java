@@ -123,7 +123,7 @@ public class CommitService {
         Commit commit = commitRepository.findByCommitIdAndRepoId(commitId, repoId);
 
         if(commit == null) {
-            throw new NotFoundException("조회하려는 커밋이 존재하지 않습니다.");
+            throw new NotFoundException("조회하려는 Commit이 존재하지 않습니다.");
         }
 
         return fileService.fileDownload(new CommitDTO(commit));

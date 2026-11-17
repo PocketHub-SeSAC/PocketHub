@@ -1,6 +1,8 @@
 package com.pockethub.file.service;
 
 import com.pockethub.commit.dto.CommitDTO;
+import com.pockethub.common.exception.FileNotCleanupException;
+import com.pockethub.common.exception.FileNotCreatedException;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
@@ -50,8 +52,7 @@ public class FileService {
                 fileInfo.add(info);
             }
         } catch(IOException e) {
-            // TODO : 커스텀 Exception 만들어 처리
-            throw new IllegalArgumentException("파일 업로드 도중 문제가 발생했습니다.");
+            throw new FileNotCreatedException("파일 업로드 도중 문제가 발생했습니다.");
         }
 
         return fileInfo;
@@ -131,7 +132,7 @@ public class FileService {
                                 try {
                                     Files.deleteIfExists(p);
                                 } catch (IOException e) {
-                                    throw new RuntimeException(e);
+                                    throw new FileNotCleanupException("임시 저장된 파일을 삭제하는 도중 문제가 발생했습니다.");
                                 }
                             });
             Files.deleteIfExists(savedPath);
@@ -214,8 +215,7 @@ public class FileService {
             res.setFileName(commitDTO.getCommitId() + ".zip");
             res.setFile(new java.io.File(savedPath.toString()));
         } catch (IOException e) {
-            // TODO : 커스텀 익셉션 추가
-            throw new RuntimeException("임시 파일 생성 중 문제가 발생했습니다.");
+            throw new FileNotCreatedException("임시 파일 생성 중 문제가 발생했습니다.");
         }
 
         return res;

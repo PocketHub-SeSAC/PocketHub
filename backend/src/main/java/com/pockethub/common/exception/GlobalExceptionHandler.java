@@ -2,8 +2,6 @@ package com.pockethub.common.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.pockethub.common.response.ErrorResponse;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -13,6 +11,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -87,16 +88,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(FileNotCreatedException.class)
+    public ResponseEntity<ErrorResponse> handlerIllegalArgument(
+            FileNotCreatedException exception, WebRequest request
+    ) {
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage(), extractPath(request));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(FileNotCleanupException.class)
+    public ResponseEntity<ErrorResponse> handlerIllegalArgument(
+            FileNotCleanupException exception, WebRequest request
+    ) {
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage(), extractPath(request));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
     // TODO : 처리할 예외들 작성
 
-    // 나머지 모든 익셉션 처리
-//    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<ErrorResponse> handlerIllegalArgument(
-//            Exception exception, WebRequest request
-//    ) {
-//        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage(), extractPath(request));
-//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-//    }
+    // 나머지 모든 런타임 익셉션 처리
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handlerIllegalArgument(
+            RuntimeException exception, WebRequest request
+    ) {
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage(), extractPath(request));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
 
     private ResponseEntity<ErrorResponse> error(HttpStatus status, String message, WebRequest request) {
         return ResponseEntity.status(status).body(new ErrorResponse(status, message, extractPath(request)));
