@@ -36,7 +36,7 @@ public class TeamService {
     public TeamResponse createTeam(Long loginUserId, CreateTeamRequest request) {
 
         if (request.getName() == null || request.getName().isBlank()) {
-            throw new IllegalArgumentException("저장소 이름을 입력해주세요.");
+            throw new IllegalArgumentException("팀 이름을 입력해주세요.");
         }
 
         User owner = findUser(loginUserId);
@@ -67,7 +67,7 @@ public class TeamService {
         checkOwner(repo, loginUserId);
 
         if (request.getName() != null && request.getName().isBlank()) {
-            throw new IllegalArgumentException("저장소 이름을 입력해주세요.");
+            throw new IllegalArgumentException("팀 이름을 입력해주세요.");
         }
         if (request.getName() != null
                 && !request.getName().equals(repo.getName())
