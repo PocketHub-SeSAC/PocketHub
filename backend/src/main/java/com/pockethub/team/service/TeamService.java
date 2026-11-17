@@ -43,17 +43,18 @@ public class TeamService {
 
         Repo repo = repoRepository.save(request.toEntity(owner));
         collaboratorRepository.save(new Collaborator(owner, repo));   // 만든 사람도 팀원으로
-        return new TeamResponse(repo);
+        return toResponse(repo);
     }
 
-    public List<TeamResponse> getTeams() {
-        return repoRepository.findAll().stream()
-                .map(TeamResponse::new)
+    public List<TeamResponse> getTeams(Long loginUserId) {
+        User user = findUser(loginUserId);
+        return collaboratorRepository.findAllByUser(user).stream()
+                .map(c -> toResponse(c.getRepo()))
                 .toList();
     }
 
     public TeamResponse getTeam(Long teamId) {
-        return new TeamResponse(findRepo(teamId));
+        return toResponse(findRepo(teamId));
     }
 
     @Transactional
@@ -72,7 +73,7 @@ public class TeamService {
 
 
         repo.update(request.getName(), request.getDescription());   // save 안 해도 자동 반영
-        return new TeamResponse(repo);
+        return toResponse(repo);
     }
 
     @Transactional
@@ -92,15 +93,22 @@ public class TeamService {
     }
 
     @Transactional
-    public void addMember(Long loginUserId, Long teamId, AddMemberRequest request) {
+    public TeamMemberResponse addMember(Long loginUserId, Long teamId, AddMemberRequest request) {
         Repo repo = findRepo(teamId);
         checkOwner(repo, loginUserId);
-        User user = findUser(request.getUserId());
+
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("추가할 사용자의 이메일을 입력해주세요.");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail().trim())
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
         if (collaboratorRepository.existsByRepoAndUser(repo, user)) {
             throw new ConflictException("이미 팀원입니다.");
         }
-        collaboratorRepository.save(new Collaborator(user, repo));
+        Collaborator saved = collaboratorRepository.save(new Collaborator(user, repo));
+        return new TeamMemberResponse(saved);
     }
 
     @Transactional
@@ -136,6 +144,11 @@ public class TeamService {
             throw new ForbiddenException("팀장만 할 수 있습니다.");
         }
     }
+
+    private TeamResponse toResponse(Repo repo) {
+        return new TeamResponse(repo, collaboratorRepository.countByRepo(repo));
+    }
+
 }
 
 

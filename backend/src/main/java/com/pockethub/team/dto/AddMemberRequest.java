@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class AddMemberRequest {
-    private Long userId;
+    private String email;
 }
