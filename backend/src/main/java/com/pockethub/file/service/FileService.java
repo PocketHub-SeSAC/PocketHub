@@ -113,21 +113,31 @@ public class FileService {
         return dto;
     }
 
-    // 커밋 실패 시, 이미 저장된 파일을 커밋 폴더 채로 정리
     // 파일 경로 : /{repositoryId}/{commitId}/{저장 파일명}
-    public void cleanupSavedFiles(long repoId, String commitId, Exception originalException) {
-        Path savedPath = uploadRoot.resolve(String.valueOf(repoId)).resolve(commitId).normalize();
+    public void cleanupSavedFiles(long repoId, String commitId) throws IOException {
+        Path savedPath = commitId == null ? uploadRoot.resolve(String.valueOf(repoId)).normalize()
+                : uploadRoot.resolve(String.valueOf(repoId)).resolve(commitId).normalize();
+
+        java.io.File savedFile = new java.io.File(savedPath.toString());
+        if(!savedFile.exists()) return;
 
         try(Stream<Path> walk = Files.walk(savedPath)) {
             walk.sorted(Comparator.reverseOrder())
-                            .forEach(p -> {
-                                try {
-                                    Files.deleteIfExists(p);
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
             Files.deleteIfExists(savedPath);
+        }
+    }
+
+    // 커밋 실패 시, 이미 저장된 파일을 커밋 폴더 채로 정리
+    public void cleanupSavedFiles(long repoId, String commitId, Exception originalException) {
+        try {
+            cleanupSavedFiles(repoId, commitId);
         } catch (IOException e) {
             originalException.addSuppressed(e);
         }
