@@ -115,6 +115,9 @@ public class FileService {
         Path savedPath = commitId == null ? uploadRoot.resolve(String.valueOf(repoId)).normalize()
                 : uploadRoot.resolve(String.valueOf(repoId)).resolve(commitId).normalize();
 
+        java.io.File savedFile = new java.io.File(savedPath.toString());
+        if(!savedFile.exists()) return;
+
         try(Stream<Path> walk = Files.walk(savedPath)) {
             walk.sorted(Comparator.reverseOrder())
                     .forEach(p -> {
