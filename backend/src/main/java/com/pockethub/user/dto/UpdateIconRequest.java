@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UpdateIconRequest {
 
-    private String icon;
+    private String profileIcon;
 }

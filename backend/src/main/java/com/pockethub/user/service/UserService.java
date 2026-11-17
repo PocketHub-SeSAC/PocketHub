@@ -53,7 +53,7 @@ public class UserService {
     @Transactional
     public UserResponse updateIcon(Long userId, UpdateIconRequest request) {
         User user = findUser(userId);
-        user.updateIcon(request.getIcon());
+        user.updateIcon(request.getProfileIcon());
 
         return UserResponse.from(user);
     }
