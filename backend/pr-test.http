@@ -68,6 +68,40 @@ Content-Type: application/json
   "title": "남이 수정"
 }
 
+### PR 승인 - 작성자 본인 (403)
+POST http://localhost:8080/api/v1/teams/1/pulls/1/approve
+X-User-Id: 1
+
+### PR 승인 - 작성자가 아닌 팀원 (200), 연결 Task 가 DONE 으로 바뀜
+POST http://localhost:8080/api/v1/teams/1/pulls/1/approve
+X-User-Id: 2
+
+### PR 승인 - 이미 처리된 PR (409)
+POST http://localhost:8080/api/v1/teams/1/pulls/1/approve
+X-User-Id: 2
+
+### PR 거부 - 사유 없이 (400), 다른 PR 번호로 시험
+POST http://localhost:8080/api/v1/teams/1/pulls/2/reject
+X-User-Id: 2
+Content-Type: application/json
+
+{
+  "reason": " "
+}
+
+### PR 거부 - 사유와 함께 (200), 사유는 응답 reply 로 확인
+POST http://localhost:8080/api/v1/teams/1/pulls/2/reject
+X-User-Id: 2
+Content-Type: application/json
+
+{
+  "reason": "테스트 코드가 없어요. 추가 후 다시 올려 주세요."
+}
+
+### PR 목록 - 팀원이 아닌 사람 (403)
+GET http://localhost:8080/api/v1/teams/1/pulls
+X-User-Id: 999
+
 ### PR 삭제 - 작성자가 아닌 사람 (403)
 DELETE http://localhost:8080/api/v1/teams/1/pulls/1
 X-User-Id: 2

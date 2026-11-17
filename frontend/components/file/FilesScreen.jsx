@@ -21,6 +21,9 @@ import { formatDate, formatSize } from '@/utils/format';
 import FilesToolbar from './FilesToolbar';
 import UploadModal from './UploadModal';
 
+const TYPE = { UPLOAD: ['업로드', 'badge'], DELETE: ['삭제', 'badge end'] };
+const ACTION = { ADD: ['추가', 'badge ok'], MODIFY: ['수정', 'badge'], DELETE: ['삭제', 'badge end'] };
+
 function DeleteFileModal({ teamId, file, onClose, onDone }) {
   const toast = useToast();
   const [message, setMessage] = useState(`${file.name.replace(/\.[^.]+$/, '')} 삭제`);
@@ -70,6 +73,7 @@ function FileSide({ teamId, fileId, me, onClose, onDelete }) {
             <>
               <div className='who' style={{ fontSize: 16 }}><Icon name='file' />{f.data.name} {f.data.version > 1 && <span className='badge ver'>v{f.data.version}</span>}</div>
               <dl className='kv'>
+                <dt>종류</dt><dd>{f.data.type}</dd>
                 <dt>파일 크기</dt><dd>{formatSize(f.data.size)}</dd>
                 <dt>버전</dt><dd>v{f.data.version}</dd>
                 <dt>업로드 날짜</dt><dd>{formatDate(f.data.uploadedAt)}</dd>
@@ -79,7 +83,6 @@ function FileSide({ teamId, fileId, me, onClose, onDelete }) {
                 <button className='btn' type='button' onClick={handleDownload}><Icon name='download' />다운로드</button>
                 {mine && <button className='btn btn-no' type='button' onClick={onDelete}><Icon name='trash' />삭제</button>}
               </div>
-              <p className='sub-hint'>{mine ? '내가 올린 파일이라 삭제할 수 있어요.' : '삭제는 파일을 올린 사람만 할 수 있어요.'}</p>
               {f.data.versions.length > 0 && (
                 <div>
                   <div className='sec-label'>버전 기록</div>
@@ -107,7 +110,7 @@ export default function FilesScreen() {
   const { teamId, me } = useTeam();
   const [q, setQuery] = useQuery();
   const files = useAsync(() => getFiles(teamId), [teamId]);
-  const commits = useAsync(() => getCommits(teamId), [teamId]);
+  const commits = useAsync(() => getCommits(teamId, {pgae : 0}), [teamId]);
   const fileId = q.get('file');
   const modal = q.get('modal');
   const selected = (files.data || []).find((f) => String(f.id) === fileId);
@@ -119,7 +122,7 @@ export default function FilesScreen() {
         onUpload={() => setQuery({ modal: 'upload' })} />
       <div className={`split ${fileId ? 'has-side' : ''}`}>
         <div className='panel'>
-          <div className='fhead'><span /><span>파일명</span><span>크기</span><span>올린 사람</span><span>업로드 날짜</span></div>
+          <div className='fhead'><span /><span>종류</span><span>파일명</span><span>크기</span><span>올린 사람</span><span>업로드 날짜</span></div>
           <ListState loading={files.loading} error={files.error} onRetry={() => files.reload()}
             empty={files.data && !files.data.length} emptyText='아직 업로드한 파일이 없어요. 첫 파일을 올려 보세요.'
             emptyAction={<button className='btn btn-sm' type='button' onClick={() => setQuery({ modal: 'upload' })}><Icon name='upload' />파일 업로드</button>}>
@@ -127,6 +130,7 @@ export default function FilesScreen() {
               <a key={f.id} className={`frow ${String(f.id) === fileId ? 'sel' : ''}`} href={`?file=${f.id}`}
                 onClick={(e) => { e.preventDefault(); setQuery({ file: f.id, modal: null }); }}>
                 <Icon name='file' />
+                <span className='nm'>{/* <span className={TYPE[f.type][1]}>{TYPE[f.type][0]}</span> */}{f.type}</span>
                 <span className='nm'><span>{f.name}</span>{f.version > 1 && <span className='badge ver'>v{f.version}</span>}</span>
                 <span className='muted'>{formatSize(f.size)}</span>
                 <Who user={f.uploader} />

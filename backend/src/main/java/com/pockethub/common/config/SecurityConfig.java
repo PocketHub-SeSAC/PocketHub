@@ -1,8 +1,13 @@
 package com.pockethub.common.config;
 
-import com.pockethub.common.auth.TempAuthFilter;
+import com.pockethub.common.auth.JwtAuthenticationEntryPoint;
+import com.pockethub.common.auth.JwtAuthenticationFilter;
+import com.pockethub.common.auth.JwtProvider;
+import jakarta.servlet.DispatcherType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -13,7 +18,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtProvider jwtProvider;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -23,11 +32,13 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // TODO: JWT 필터 완성 후 회원가입·로그인만 permitAll, 나머지는 authenticated 로 변경
-                        .anyRequest().permitAll())
-                // TODO: JWT 필터 완성 후 JwtAuthenticationFilter 로 교체
-                .addFilterBefore(new TempAuthFilter(), UsernamePasswordAuthenticationFilter.class);
-
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/members", "/api/v1/auth/login").permitAll()
+                        .anyRequest().authenticated())
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider),
+                        UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
