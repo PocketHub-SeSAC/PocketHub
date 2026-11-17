@@ -12,6 +12,7 @@ import com.pockethub.pr.domain.PrState;
 import com.pockethub.pr.dto.PrCreateRequest;
 import com.pockethub.pr.dto.PrDetailResponse;
 import com.pockethub.pr.dto.PrMemberResponse;
+import com.pockethub.pr.dto.PrRejectRequest;
 import com.pockethub.pr.dto.PrSummaryResponse;
 import com.pockethub.pr.dto.PrTaskResponse;
 import com.pockethub.pr.dto.PrUpdateRequest;
@@ -19,6 +20,7 @@ import com.pockethub.pr.repository.PrRepository;
 import com.pockethub.pr.repository.PrRepository.MemberRow;
 import com.pockethub.pr.repository.PrRepository.ReviewCountRow;
 import com.pockethub.pr.repository.PrRepository.TaskRow;
+import com.pockethub.task.domain.TaskStatus;
 import com.pockethub.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class PrService {
+    // 거부 사유는 DB pr.reply VARCHAR(4000)
+    private static final int REPLY_MAX = 4000;
+
     private final PrRepository prRepository;
     private final CommitRepository commitRepository;
     private final TaskRepository taskRepository;
@@ -44,9 +49,9 @@ public class PrService {
         this.taskRepository = taskRepository;
     }
 
-    // TODO : 팀원 여부 확인(403)은 member·team 기능이 생기면 추가
     @Transactional
     public PrDetailResponse createPr(long userId, long repoId, PrCreateRequest request) {
+        validateMember(userId, repoId);
         String title = validateTitle(request.getTitle());
         String text = validateText(request.getDescription());
         List<String> commitIds = validateCommitIds(request.getCommitIds());
@@ -63,9 +68,9 @@ public class PrService {
         return toDetail(pr, commits);
     }
 
-    // TODO : 팀원 여부 확인(403)은 member·team 기능이 생기면 추가 (조회·수정·삭제 공통)
     @Transactional(readOnly = true)
-    public List<PrSummaryResponse> getPrs(long repoId, String status) {
+    public List<PrSummaryResponse> getPrs(long userId, long repoId, String status) {
+        validateMember(userId, repoId);
         PrState state = PrState.from(status);
         List<Pr> prs = (state == null)
                 ? prRepository.findByRepoIdOrderByPrIdDesc(repoId)
@@ -76,7 +81,8 @@ public class PrService {
     }
 
     @Transactional(readOnly = true)
-    public PrDetailResponse getPr(long repoId, long prId) {
+    public PrDetailResponse getPr(long userId, long repoId, long prId) {
+        validateMember(userId, repoId);
         Pr pr = findPr(repoId, prId);
         return toDetail(pr, prRepository.findCommitsByPrId(prId));
     }
@@ -97,6 +103,50 @@ public class PrService {
         prRepository.delete(pr);
     }
 
+    // API-032 승인: 연결된 Task 를 같은 트랜잭션에서 DONE 으로 바꾼다 (둘 중 하나만 바뀌는 일이 없게)
+    @Transactional
+    public PrDetailResponse approvePr(long userId, long repoId, long prId) {
+        Pr pr = findDecidablePr(userId, repoId, prId, "승인");
+        pr.approve(userId);
+        // Task 가 지워졌으면(task_id NULL) PR 만 승인
+        if (pr.getTaskId() != null) {
+            taskRepository.findById(pr.getTaskId()).ifPresent(task -> task.changeStatus(TaskStatus.DONE));
+        }
+        return toDetail(pr, prRepository.findCommitsByPrId(prId));
+    }
+
+    // API-033 거부: 사유는 pr.reply 에 저장, Task 상태와 커밋은 그대로 둔다
+    @Transactional
+    public PrDetailResponse rejectPr(long userId, long repoId, long prId, PrRejectRequest request) {
+        Pr pr = findDecidablePr(userId, repoId, prId, "거부");
+        pr.reject(userId, validateReason(request.getReason()));
+        return toDetail(pr, prRepository.findCommitsByPrId(prId));
+    }
+
+    // 팀이 없으면 404, 팀원(소유자 포함)이 아니면 403 — Task 기능과 같은 기준·메시지
+    // TODO : 팀(Repo·Collaborator) 리포지토리가 dev 에 들어오면 그쪽 조회로 교체
+    private void validateMember(long userId, long repoId) {
+        if (taskRepository.countTeam(repoId) == 0) {
+            throw new NotFoundException("팀을 찾을 수 없습니다.");
+        }
+        if (taskRepository.countMember(repoId, userId) == 0) {
+            throw new ForbiddenException("팀원만 접근할 수 있습니다.");
+        }
+    }
+
+    // 승인·거부 공통 검사: 팀원(403) → 존재(404) → 리뷰 대기 상태(409) → 작성자 본인이 아닌지(403)
+    private Pr findDecidablePr(long userId, long repoId, long prId, String action) {
+        validateMember(userId, repoId);
+        Pr pr = findPr(repoId, prId);
+        if (!pr.isOpen()) {
+            throw new ConflictException("이미 처리된 PR입니다.");
+        }
+        if (pr.isWrittenBy(userId)) {
+            throw new ForbiddenException("본인이 작성한 PR은 " + action + "할 수 없습니다.");
+        }
+        return pr;
+    }
+
     // 다른 팀 Task 도 존재 여부를 드러내지 않도록 없는 Task 와 같은 404
     private void validateTask(long repoId, long taskId) {
         boolean sameTeam = taskRepository.findById(taskId)
@@ -113,8 +163,9 @@ public class PrService {
                 .orElseThrow(() -> new NotFoundException("PR을 찾을 수 없습니다."));
     }
 
-    // 수정·삭제 공통 검사: 존재(404) → 리뷰 대기 상태(409) → 작성자 본인(403)
+    // 수정·삭제 공통 검사: 팀원(403) → 존재(404) → 리뷰 대기 상태(409) → 작성자 본인(403)
     private Pr findEditablePr(long userId, long repoId, long prId, String action) {
+        validateMember(userId, repoId);
         Pr pr = findPr(repoId, prId);
         if (!pr.isOpen()) {
             throw new ConflictException("이미 처리된 PR은 " + action + "할 수 없어요.");
@@ -209,6 +260,17 @@ public class PrService {
         String trimmed = (description == null) ? "" : description.trim();
         if (trimmed.length() > ValidationRules.PR_TEXT_MAX) {
             throw new IllegalArgumentException("PR 설명은 " + ValidationRules.PR_TEXT_MAX + "자 이하로 입력해 주세요.");
+        }
+        return trimmed;
+    }
+
+    private String validateReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("거부 사유를 입력해 주세요.");
+        }
+        String trimmed = reason.trim();
+        if (trimmed.length() > REPLY_MAX) {
+            throw new IllegalArgumentException("거부 사유는 " + REPLY_MAX + "자 이하로 입력해 주세요.");
         }
         return trimmed;
     }
