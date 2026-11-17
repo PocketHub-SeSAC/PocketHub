@@ -79,6 +79,9 @@ public class TaskService {
                 request.getTitle(), request.getText(), request.getPriority(),
                 request.getManagerId(), toDateTime(request.getEndAt())
         );
+        if (request.isManagerIdSpecified()) {
+            task.changeManager(request.getManagerId());
+        }
         return TaskResponse.from(task);
     }
 
