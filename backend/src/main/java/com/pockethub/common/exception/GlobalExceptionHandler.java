@@ -87,6 +87,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handlerUnauthorized(
+            UnauthorizedException exception, WebRequest request
+    ) {
+        return error(HttpStatus.UNAUTHORIZED, exception.getMessage(), request);
+    }
+
     // TODO : 처리할 예외들 작성
 
     // 나머지 모든 익셉션 처리
