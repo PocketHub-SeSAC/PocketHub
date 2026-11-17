@@ -46,5 +46,5 @@ export const getCommitFiles = (teamId, commitId) =>
   request(FILES_API.commitFiles, { params: { teamId, commitId }, handle404: false }).then(normalizeCommitFiles);
 
 /** 커밋에 포함된 버전(이전 버전 포함) 다운로드 */
-export const downloadCommitFile = (teamId, commitId, fileId) =>
-  request(FILES_API.commitFileDownload, { params: { teamId, commitId, fileId }, blob: true });
+export const downloadCommitFile = (teamId, commitId) =>
+  request(FILES_API.commitFileDownload, { params: { teamId, commitId }, blob: true });

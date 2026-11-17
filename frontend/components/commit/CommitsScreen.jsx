@@ -4,7 +4,7 @@
 /* 커밋 상세는 API-019(커밋 정보)와 API-020(포함 파일)을 따로 불러서 그린다.
    포함 파일은 그 커밋 당시 버전으로 내려받을 수 있다(API-021) → 이전 버전 다운로드. */
 import Link from 'next/link';
-import { getCommits, getCommit, getCommitFiles, getFiles, downloadCommitFile } from '@/services/files';
+import { getCommits, getCommit, getCommitFiles, getFiles, downloadFile, downloadCommitFile } from '@/services/files';
 import { saveBlob } from '@/services/client';
 import { useTeam } from '@/components/team/TeamShell';
 import useAsync from '@/hooks/useAsync';
@@ -24,8 +24,12 @@ function CommitSide({ teamId, commitId, me, onClose }) {
   const toast = useToast();
   const info = useAsync(() => getCommit(teamId, commitId), [teamId, commitId]);       // API-019
   const files = info.data?.files;
-  const handleDownload = async (f) => {
-    try { saveBlob(await downloadCommitFile(teamId, commitId, f.fileId), f.name); toast(`${f.name} v${f.version}을(를) 내려받아요.`); }
+  const handleDownload = async () => {
+    try { saveBlob(await downloadCommitFile(teamId, commitId), commitId+".zip"); toast(`커밋 ID v${commitId}을(를) 내려받아요.`); }
+    catch (err) { toast(err.message); }
+  };
+  const handleDownloadFile = async (f) => {
+    try { saveBlob(await downloadFile(teamId, f.fileId), f.fileName); toast(`${f.fileName} 다운로드를 시작해요.`); }
     catch (err) { toast(err.message); }
   };
   const c = info.data;
@@ -47,7 +51,7 @@ function CommitSide({ teamId, commitId, me, onClose }) {
           )}
         </ListState>
         <div>
-          <div className='sec-label'>포함된 파일</div>
+          <div className='sec-label'>포함된 파일 <button className='btn btn-sm' type='button' aria-label={`전체 다운로드`} onClick={() => handleDownload()}><Icon name='download' />다운로드</button></div>
           {(!files || files.length == 0) && '포함된 파일이 없어요.'}
             <ul className='items'>
               {(files || []).map((f) => (
@@ -55,8 +59,8 @@ function CommitSide({ teamId, commitId, me, onClose }) {
                   <Icon name='file' />
                   <span className='grow'>{f.fileName} <span className='size'>{formatSize(f.size)}</span></span>
                   <span>{f.state}</span>
-                  {f.action !== 'DELETE' && (
-                    <button className='btn btn-sm' type='button' aria-label={`${f.name} v${f.version} 다운로드`} onClick={() => handleDownload(f)}><Icon name='download' />다운로드</button>
+                  {f.state !== 'DELETE' && (
+                    <button className='btn btn-sm' type='button' aria-label={`다운로드`} onClick={() => handleDownloadFile(f)}><Icon name='download' />다운로드</button>
                   )}
                 </li>
               ))}
