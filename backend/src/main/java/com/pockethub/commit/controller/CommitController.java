@@ -4,10 +4,14 @@ import com.pockethub.commit.dto.CommitDTO;
 import com.pockethub.commit.service.CommitService;
 import com.pockethub.common.response.PageResponse;
 import com.pockethub.common.response.ResponseDTO;
+import com.pockethub.file.dto.FileDownloadRes;
+import com.pockethub.file.dto.TempFileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -93,5 +97,19 @@ public class CommitController {
                         "files", commit.getFiles()
                 ), "Commit 상세 조회에 성공했습니다."
         ));
+    }
+
+    @GetMapping("/{commitId}/download")
+    public ResponseEntity<Resource> downloadCommitFiles(
+            @PathVariable("teamId") long repoId,
+            @PathVariable("commitId") String commitId
+    ) {
+        FileDownloadRes res = commitService.downloadCommitFiles(commitId, repoId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + res.getFileName() + "\"")
+//                .header(HttpHeaders.CONTENT_TYPE, res.getMediaType())
+//                .header(HttpHeaders.CONTENT_LENGTH, res.getFileLength())
+                .body(new TempFileSystemResource(res.getFile()));
     }
 }
