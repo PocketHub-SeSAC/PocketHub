@@ -27,12 +27,20 @@ export function fileState(db, file) {
   return versions.length ? { current: versions[0], versions } : null;
 }
 
-const fileView = (db, f, st, withVersions = false) => ({
-  id: f.id, name: f.name,
-  size: st.current.size, version: st.current.version,
-  uploader: publicUser(db, st.current.uploaderId), uploadedAt: st.current.uploadedAt, commitId: st.current.commitId,
-  ...(withVersions ? { versions: st.versions.map((v) => ({ version: v.version, commitId: v.commitId, size: v.size, uploader: publicUser(db, v.uploaderId), uploadedAt: v.uploadedAt })) } : {}),
-});
+/* 백엔드 FileDTO 와 같은 키: fileId, fileName, fileSize, state(ADD|UPDATE|DELETE), uploaderId, uploaderNickname, uploadedAt, commitId.
+   version 은 백엔드 DTO 에 없지만 화면(v2 배지·버전 칸)이 쓰므로 함께 준다. versions 는 adapter 가 [] 로 고정해서 주지 않는다. */
+const FILE_STATE = { ADD: 'ADD', MODIFY: 'UPDATE', DELETE: 'DELETE' };
+const fileView = (db, f, st) => {
+  const cur = st.current;
+  const it = db.commits.find((c) => c.id === cur.commitId)?.items.find((x) => x.versionId === cur.id);
+  const u = db.users.find((x) => x.id === cur.uploaderId);
+  return {
+    fileId: f.id, fileName: f.name, fileSize: cur.size, version: cur.version,
+    state: FILE_STATE[it?.action] || 'ADD',
+    uploaderId: cur.uploaderId, uploaderNickname: u ? u.nickname : '',
+    uploadedAt: cur.uploadedAt, commitId: cur.commitId,
+  };
+};
 
 export const commitView = (db, c) => ({
   id: c.id, hash: c.hash, message: c.message, type: c.type,
@@ -92,13 +100,13 @@ export const handlers = {
     const out = [];
     db.files.filter((f) => f.teamId === team.id).forEach((f) => { const st = fileState(db, f); if (st) out.push(fileView(db, f, st)); });
     out.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
-    return ok(out);
+    return ok({ files: out });  // 백엔드와 같이 { files: [...] } (services/files.js 가 res.files 를 읽는다)
   },
 
   'files.detail': ({ db, user, params }) => {
     const team = requireMember(db, params.teamId, user);
     const { f, st } = findVisibleFile(db, team, params.fileId);
-    return ok(fileView(db, f, st, true));
+    return ok(fileView(db, f, st));
   },
 
   'files.download': ({ db, user, params }) => {
@@ -111,16 +119,21 @@ export const handlers = {
     const team = requireMember(db, params.teamId, user);
     const { f, st } = findVisibleFile(db, team, params.fileId);
     if (st.current.uploaderId !== user.id) fail(403, '파일을 올린 사람만 삭제할 수 있어요.');
-    const message = str(query?.message); // DELETE …?message=커밋 메시지
+    const message = str(query?.commitMessage ?? query?.message); // DELETE …?commitMessage=커밋 메시지 (services/files.js 가 #52 부터 이 이름으로 보냄)
     if (!message) fail(400, '삭제 이유를 커밋 메시지로 입력해 주세요.');
     const commit = { id: nextId(db, 'commit'), teamId: team.id, hash: hex6(), message, type: 'DELETE', authorId: user.id, createdAt: now(), prId: null, excluded: false, items: [{ fileId: f.id, versionId: st.current.id, action: 'DELETE' }] };
     db.commits.push(commit);
     return ok(commitView(db, commit));
   },
 
-  'files.commits': ({ db, user, params }) => {
+  // API-018: ?page=&size= (기본 0, 10). data 는 { commits }, 페이지 정보는 meta → server.js 가 응답 최상위에 펼친다
+  'files.commits': ({ db, user, params, query }) => {
     const team = requireMember(db, params.teamId, user);
-    return ok(visibleCommits(db, team.id).slice().reverse().map((c) => commitView(db, c)));
+    const page = Math.max(0, Number.parseInt(query?.page, 10) || 0);
+    const size = Math.max(1, Number.parseInt(query?.size, 10) || 10);
+    const all = visibleCommits(db, team.id).slice().reverse();
+    const commits = all.slice(page * size, page * size + size).map((c) => commitView(db, c));
+    return { ...ok({ commits }), meta: { page, size, totalPages: Math.ceil(all.length / size), totalElements: all.length } };
   },
 
   'files.commitDetail': ({ db, user, params }) => {

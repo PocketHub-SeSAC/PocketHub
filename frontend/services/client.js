@@ -39,9 +39,11 @@ function filenameFrom(disposition) {
 /**
  * @param route   { key, method, path, auth? }  ← 각 도메인 api 파일에 정의
  * @param options params(경로 값), query, body(객체 또는 FormData), blob(true면 파일 받기),
- *                handle404(false면 404를 화면이 직접 처리)
+ *                handle404(false면 404를 화면이 직접 처리),
+ *                withMeta(true면 { data, meta: { page, size, totalPages, totalElements } } 로 돌려줌 — 페이징 응답용.
+ *                         페이지 정보는 응답 최상위(data 밖)에 있다. 기본 false 는 예전처럼 data 만 돌려준다)
  */
-export async function request(route, { params, query, body, blob = false, handle404 = true } = {}) {
+export async function request(route, { params, query, body, blob = false, handle404 = true, withMeta = false } = {}) {
   const path = buildPath(route.path, params);
   const headers = {};
   if (route.auth !== false) {
@@ -76,7 +78,12 @@ export async function request(route, { params, query, body, blob = false, handle
   }
 
   if (res.status >= 200 && res.status < 300) {
-    return blob ? { blob: res.blob, filename: res.filename } : unwrap(res.data);
+    if (blob) return { blob: res.blob, filename: res.filename };
+    if (withMeta) {
+      const top = res.data && typeof res.data === 'object' ? res.data : {};
+      return { data: unwrap(res.data), meta: { page: top.page, size: top.size, totalPages: top.totalPages, totalElements: top.totalElements } };
+    }
+    return unwrap(res.data);
   }
   const err = toApiError(res.status, res.data);
   if (res.status === 401 && route.auth !== false) {

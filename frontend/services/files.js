@@ -37,7 +37,19 @@ export const downloadFile = (teamId, fileId) => request(FILES_API.download, { pa
 export const deleteFile = (teamId, fileId, { message }) =>
   request(FILES_API.remove, { params: { teamId, fileId }, query: { commitMessage : message } }).then(normalizeCommit);
 
-export const getCommits = (teamId, { page }) => request(FILES_API.commits, { params: { teamId }, query: { page } }).then((res) => normalizeCommits(res.commits));
+export const getCommits = (teamId, { page, size } = {}) => request(FILES_API.commits, { params: { teamId }, query: { page, size } }).then((res) => normalizeCommits(res.commits));
+
+/** 커밋 목록 한 페이지 (API-018 ?page=&size=). 페이지 정보는 응답 최상위에 온다
+ *  @returns {{ items, page, size, totalPages, totalElements }} */
+export const getCommitsPage = (teamId, { page = 0, size = 10 } = {}) =>
+  request(FILES_API.commits, { params: { teamId }, query: { page, size }, withMeta: true })
+    .then(({ data, meta }) => ({
+      items: normalizeCommits(data?.commits),
+      page: meta.page ?? page,
+      size: meta.size ?? size,
+      totalPages: meta.totalPages,
+      totalElements: meta.totalElements,
+    }));
 
 export const getCommit = (teamId, commitId) =>
   request(FILES_API.commitDetail, { params: { teamId, commitId }, handle404: false }).then(normalizeCommit);

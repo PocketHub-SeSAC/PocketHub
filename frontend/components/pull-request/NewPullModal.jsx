@@ -31,7 +31,8 @@ function CheckItem({ checked, onToggle, children }) {
 
 export default function NewPullModal({ teamId, me, members, onClose, onCreated }) {
   const toast = useToast();
-  const commits = useAsync(() => getCommits(teamId), [teamId]);
+  // TODO: 서버 usePr=true 가 머지되면 size 대신 usePr 로 교체
+  const commits = useAsync(() => getCommits(teamId, { size: 100 }), [teamId]);
   const tasks = useAsync(() => getTasks(teamId), [teamId]);
   const [v, setV] = useState({ title: '', description: '', commitIds: [], reviewerIds: [], taskId: '' });
   const [errs, setErrs] = useState({});
