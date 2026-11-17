@@ -41,7 +41,8 @@ function filenameFrom(disposition) {
  * @param options params(경로 값), query, body(객체 또는 FormData), blob(true면 파일 받기),
  *                handle404(false면 404를 화면이 직접 처리),
  *                withMeta(true면 { data, meta: { page, size, totalPages, totalElements } } 로 돌려줌 — 페이징 응답용.
- *                         페이지 정보는 응답 최상위(data 밖)에 있다. 기본 false 는 예전처럼 data 만 돌려준다)
+ *                         백엔드는 페이지 정보를 응답 최상위의 pageInfo 객체(data 밖)에 넣는다.
+ *                         pageInfo 가 없으면 최상위 필드(목업)에서 읽는다. 기본 false 는 예전처럼 data 만 돌려준다)
  */
 export async function request(route, { params, query, body, blob = false, handle404 = true, withMeta = false } = {}) {
   const path = buildPath(route.path, params);
@@ -81,7 +82,8 @@ export async function request(route, { params, query, body, blob = false, handle
     if (blob) return { blob: res.blob, filename: res.filename };
     if (withMeta) {
       const top = res.data && typeof res.data === 'object' ? res.data : {};
-      return { data: unwrap(res.data), meta: { page: top.page, size: top.size, totalPages: top.totalPages, totalElements: top.totalElements } };
+      const info = top.pageInfo && typeof top.pageInfo === 'object' ? top.pageInfo : top;
+      return { data: unwrap(res.data), meta: { page: info.page, size: info.size, totalPages: info.totalPages, totalElements: info.totalElements } };
     }
     return unwrap(res.data);
   }

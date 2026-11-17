@@ -31,8 +31,8 @@ function CheckItem({ checked, onToggle, children }) {
 
 export default function NewPullModal({ teamId, me, members, onClose, onCreated }) {
   const toast = useToast();
-  // TODO: 서버 usePr=true 가 머지되면 size 대신 usePr 로 교체
-  const commits = useAsync(() => getCommits(teamId, { size: 100 }), [teamId]);
+  // usePr: PR 에 안 묶인 커밋만 받는다. 내 커밋 거르기는 아래 myFree 에서 그대로 한다
+  const commits = useAsync(() => getCommits(teamId, { size: 100, usePr: true }), [teamId]);
   const tasks = useAsync(() => getTasks(teamId), [teamId]);
   const [v, setV] = useState({ title: '', description: '', commitIds: [], reviewerIds: [], taskId: '' });
   const [errs, setErrs] = useState({});

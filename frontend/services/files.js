@@ -14,11 +14,11 @@ export const FILES_API = {
   commitFileDownload: { key: 'files.commitFileDownload', method: 'GET',    path: '/api/v1/teams/{teamId}/commits/{commitId}/download' },                  // API-021
 };
 
-/** 파일 1개 = 커밋 1개. multipart: file(1개) + message(커밋 메시지, 필수) */
+/** 파일 1개 = 커밋 1개. multipart: files(백엔드는 여러 개를 받지만 화면은 1개만 보냄) + commitMessage(필수) */
 export function uploadFile(teamId, { file, message }) {
   const form = new FormData();
-  form.append('file', file);
-  form.append('message', message);
+  form.append('files', file);
+  form.append('commitMessage', message);
   return request(FILES_API.upload, { params: { teamId }, body: form }).then(normalizeCommit);
 }
 
@@ -37,9 +37,11 @@ export const downloadFile = (teamId, fileId) => request(FILES_API.download, { pa
 export const deleteFile = (teamId, fileId, { message }) =>
   request(FILES_API.remove, { params: { teamId, fileId }, query: { commitMessage : message } }).then(normalizeCommit);
 
-export const getCommits = (teamId, { page, size } = {}) => request(FILES_API.commits, { params: { teamId }, query: { page, size } }).then((res) => normalizeCommits(res.commits));
+/** usePr: true 면 PR 에 아직 안 묶인 커밋만 (백엔드 ?usePr=true). false·생략이면 쿼리에 넣지 않는다 */
+export const getCommits = (teamId, { page, size, usePr } = {}) =>
+  request(FILES_API.commits, { params: { teamId }, query: { page, size, usePr: usePr ? true : undefined } }).then((res) => normalizeCommits(res.commits));
 
-/** 커밋 목록 한 페이지 (API-018 ?page=&size=). 페이지 정보는 응답 최상위에 온다
+/** 커밋 목록 한 페이지 (API-018 ?page=&size=). 페이지 정보는 응답의 pageInfo(data 밖) 에 온다
  *  @returns {{ items, page, size, totalPages, totalElements }} */
 export const getCommitsPage = (teamId, { page = 0, size = 10 } = {}) =>
   request(FILES_API.commits, { params: { teamId }, query: { page, size }, withMeta: true })
