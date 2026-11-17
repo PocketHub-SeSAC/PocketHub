@@ -240,7 +240,7 @@ class TeamServiceTest {
 
     private static AddMemberRequest addMemberRequest(String email) {
         AddMemberRequest request = new AddMemberRequest();
-        ReflectionTestUtils.setField(request, "email", email);
+        ReflectionTestUtils.setField(request, "keyword", email);
         return request;
     }
 }

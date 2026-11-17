@@ -110,12 +110,15 @@ public class TeamService {
         Repo repo = findRepo(teamId);
         checkOwner(repo, loginUserId);
 
-        if (request.getEmail() == null || request.getEmail().isBlank()) {
-            throw new IllegalArgumentException("추가할 사용자의 이메일을 입력해주세요.");
+        if (request.getKeyword() == null || request.getKeyword().isBlank()) {
+            throw new IllegalArgumentException("추가할 사용자의 이메일 또는 닉네임을 입력해주세요.");
         }
+        String keyword = request.getKeyword().trim();
 
-        User user = userRepository.findByEmail(request.getEmail().trim())
-                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+        User user = (keyword.contains("@")
+                ? userRepository.findByEmail(keyword)
+                : userRepository.findByNickname(keyword))
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일 또는 닉네임입니다."));
 
         if (collaboratorRepository.existsByRepoAndUser(repo, user)) {
             throw new ConflictException("이미 팀원입니다.");

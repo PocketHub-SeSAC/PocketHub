@@ -29,9 +29,8 @@ export const getMembers = (teamId) =>
 
 export const deleteTeam = (teamId) => request(TEAMS_API.remove, { params: { teamId } });
 
-/** 가입된 이메일로 바로 추가 */
-export const addMember = (teamId, { email }) =>
-  request(TEAMS_API.addMember, { params: { teamId }, body: { email } }).then((d) => normalizeTeamMember(d.member));
+export const addMember = (teamId, { keyword }) =>
+  request(TEAMS_API.addMember, { params: { teamId }, body: { keyword } }).then((d) => normalizeTeamMember(d.member));
 
 export const removeMember = (teamId, userId) =>
   request(TEAMS_API.removeMember, { params: { teamId, userId } });

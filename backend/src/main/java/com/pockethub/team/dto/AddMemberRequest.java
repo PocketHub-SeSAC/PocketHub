@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class AddMemberRequest {
-    private String email;
+    private String keyword;   // 이메일 또는 닉네임
 }
