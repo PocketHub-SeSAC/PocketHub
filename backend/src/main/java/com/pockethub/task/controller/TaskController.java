@@ -18,14 +18,13 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/teams/{teamId}/tasks")
 public class TaskController {
-    private static final String TASK_KEY = "task";
     private static final String TASKS_KEY = "tasks";
     private static final String CREATE_MESSAGE = "Task가 생성되었습니다.";
-    private static final String FIND_LIST_MESSAGE = "Task 목록을 조회했습니다.";
-    private static final String FIND_MESSAGE = "Task를 조회했습니다.";
-    private static final String UPDATE_MESSAGE = "Task를 수정했습니다.";
-    private static final String UPDATE_STATUS_MESSAGE = "Task 상태를 변경했습니다.";
-    private static final String DELETE_MESSAGE = "Task를 삭제했습니다.";
+    private static final String FIND_LIST_MESSAGE = "Task 목록 조회에 성공했습니다.";
+    private static final String FIND_MESSAGE = "Task 상세 조회에 성공했습니다.";
+    private static final String UPDATE_MESSAGE = "Task가 수정되었습니다.";
+    private static final String UPDATE_STATUS_MESSAGE = "Task 상태가 변경되었습니다.";
+    private static final String DELETE_MESSAGE = "Task가 삭제되었습니다.";
 
     private final TaskService taskService;
 
@@ -42,7 +41,7 @@ public class TaskController {
     ) {
         TaskResponse task = taskService.createTask(currentUserId(authentication), repoId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                new ResponseDTO(HttpStatus.CREATED, Map.of(TASK_KEY, task), CREATE_MESSAGE)
+                new ResponseDTO(HttpStatus.CREATED, task.toMap(), CREATE_MESSAGE)
         );
     }
 
@@ -53,7 +52,10 @@ public class TaskController {
             @PathVariable("teamId") long repoId,
             @RequestParam(value = "status", required = false) TaskStatus status
     ) {
-        List<TaskResponse> tasks = taskService.findTasks(currentUserId(authentication), repoId, status);
+        List<Map<String, Object>> tasks = taskService.findTasks(currentUserId(authentication), repoId, status)
+                .stream()
+                .map(TaskResponse::toMap)
+                .toList();
         return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASKS_KEY, tasks), FIND_LIST_MESSAGE));
     }
 
@@ -65,7 +67,7 @@ public class TaskController {
             @PathVariable("taskId") long taskId
     ) {
         TaskResponse task = taskService.findTask(currentUserId(authentication), repoId, taskId);
-        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASK_KEY, task), FIND_MESSAGE));
+        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, task.toMap(), FIND_MESSAGE));
     }
 
     // API-025 Task 수정
@@ -77,9 +79,10 @@ public class TaskController {
             @Valid @RequestBody TaskUpdateRequest request
     ) {
         TaskResponse task = taskService.updateTask(currentUserId(authentication), repoId, taskId, request);
-        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASK_KEY, task), UPDATE_MESSAGE));
+        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, task.toMap(), UPDATE_MESSAGE));
     }
-    // API-026 Task 상태 변경
+
+    // API-026 Task 상태 변경 (응답은 taskId, status 만)
     @PatchMapping("/{taskId}/status")
     public ResponseEntity<ResponseDTO> updateTaskStatus(
             Authentication authentication,
@@ -88,10 +91,12 @@ public class TaskController {
             @Valid @RequestBody TaskStatusRequest request
     ) {
         TaskResponse task = taskService.updateTaskStatus(currentUserId(authentication), repoId, taskId, request);
-        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of(TASK_KEY, task), UPDATE_STATUS_MESSAGE));
+        return ResponseEntity.ok(new ResponseDTO(
+                HttpStatus.OK, Map.of("taskId", task.getTaskId(), "status", task.getStatus()), UPDATE_STATUS_MESSAGE
+        ));
     }
 
-    // API-027 Task 삭제
+    // API-027 Task 삭제 (응답은 삭제한 taskId)
     @DeleteMapping("/{taskId}")
     public ResponseEntity<ResponseDTO> deleteTask(
             Authentication authentication,
@@ -99,8 +104,9 @@ public class TaskController {
             @PathVariable("taskId") long taskId
     ) {
         taskService.deleteTask(currentUserId(authentication), repoId, taskId);
-        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, DELETE_MESSAGE));
+        return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of("taskId", taskId), DELETE_MESSAGE));
     }
+
     // TODO : JWT 필터로 바뀐 뒤에도 principal 이 userId 인지 확인
     private long currentUserId(Authentication authentication) {
         return Long.parseLong(authentication.getName());
