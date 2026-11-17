@@ -102,6 +102,11 @@ public class GlobalExceptionHandler {
     ) {
         ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage(), extractPath(request));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handlerUnauthorized(
+            UnauthorizedException exception, WebRequest request
+    ) {
+        return error(HttpStatus.UNAUTHORIZED, exception.getMessage(), request);
     }
 
     // TODO : 처리할 예외들 작성

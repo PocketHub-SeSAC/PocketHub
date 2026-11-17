@@ -2,6 +2,7 @@ package com.pockethub.pr.controller;
 
 import com.pockethub.pr.dto.PrCreateRequest;
 import com.pockethub.pr.dto.PrDetailResponse;
+import com.pockethub.pr.dto.PrRejectRequest;
 import com.pockethub.pr.dto.PrSummaryResponse;
 import com.pockethub.pr.dto.PrUpdateRequest;
 import com.pockethub.pr.service.PrService;
@@ -36,19 +37,42 @@ public class PrController {
     // API-030 PR 목록: ?status= 로 상태 필터 (없으면 전체), 최신순
     @GetMapping
     public ResponseEntity<List<PrSummaryResponse>> getPrs(
+            Authentication authentication,
             @PathVariable("teamId") long repoId,
             @RequestParam(value = "status", required = false) String status
     ) {
-        return ResponseEntity.ok(prService.getPrs(repoId, status));
+        return ResponseEntity.ok(prService.getPrs(Long.valueOf(authentication.getName()), repoId, status));
     }
 
     // API-031 PR 상세: 커밋 목록 포함
     @GetMapping("/{prId}")
     public ResponseEntity<PrDetailResponse> getPr(
+            Authentication authentication,
             @PathVariable("teamId") long repoId,
             @PathVariable("prId") long prId
     ) {
-        return ResponseEntity.ok(prService.getPr(repoId, prId));
+        return ResponseEntity.ok(prService.getPr(Long.valueOf(authentication.getName()), repoId, prId));
+    }
+
+    // API-032 PR 승인: 작성자가 아닌 팀원, 리뷰 대기(OPEN) 상태일 때만. 연결 Task 는 DONE 이 된다
+    @PostMapping("/{prId}/approve")
+    public ResponseEntity<PrDetailResponse> approvePr(
+            Authentication authentication,
+            @PathVariable("teamId") long repoId,
+            @PathVariable("prId") long prId
+    ) {
+        return ResponseEntity.ok(prService.approvePr(Long.valueOf(authentication.getName()), repoId, prId));
+    }
+
+    // API-033 PR 거부: 작성자가 아닌 팀원, 리뷰 대기(OPEN) 상태일 때만. 사유 필수
+    @PostMapping("/{prId}/reject")
+    public ResponseEntity<PrDetailResponse> rejectPr(
+            Authentication authentication,
+            @PathVariable("teamId") long repoId,
+            @PathVariable("prId") long prId,
+            @RequestBody PrRejectRequest request
+    ) {
+        return ResponseEntity.ok(prService.rejectPr(Long.valueOf(authentication.getName()), repoId, prId, request));
     }
 
     // PR 수정: 작성자 본인, 리뷰 대기(OPEN) 상태일 때만 제목·설명 수정

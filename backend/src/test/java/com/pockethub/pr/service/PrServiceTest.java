@@ -11,6 +11,7 @@ import com.pockethub.pr.domain.Pr;
 import com.pockethub.pr.domain.PrState;
 import com.pockethub.pr.dto.PrCreateRequest;
 import com.pockethub.pr.dto.PrDetailResponse;
+import com.pockethub.pr.dto.PrRejectRequest;
 import com.pockethub.pr.dto.PrSummaryResponse;
 import com.pockethub.pr.dto.PrUpdateRequest;
 import com.pockethub.pr.repository.PrRepository;
@@ -19,6 +20,7 @@ import com.pockethub.pr.repository.PrRepository.ReviewCountRow;
 import com.pockethub.pr.repository.PrRepository.TaskRow;
 import com.pockethub.task.domain.Task;
 import com.pockethub.task.domain.TaskPriority;
+import com.pockethub.task.domain.TaskStatus;
 import com.pockethub.task.repository.TaskRepository;
 import com.pockethub.user.domain.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +40,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -62,9 +66,11 @@ class PrServiceTest {
     @InjectMocks
     private PrService prService;
 
-    // 작성자·Task·리뷰 수 조회는 모든 응답에서 쓰므로 기본값으로 깔아 둔다
+    // 팀원 확인과 작성자·Task·리뷰 수 조회는 모든 기능에서 쓰므로 기본값으로 깔아 둔다 (기본: 1번 팀의 팀원)
     @BeforeEach
     void stubRelated() {
+        lenient().when(taskRepository.countTeam(REPO_ID)).thenReturn(1L);
+        lenient().when(taskRepository.countMember(eq(REPO_ID), anyLong())).thenReturn(1L);
         lenient().when(taskRepository.findById(TASK_ID)).thenReturn(Optional.of(taskEntity(REPO_ID)));
         lenient().when(prRepository.findMembers(anyCollection())).thenReturn(List.of(
                 member(AUTHOR_ID, "새싹"), member(OTHER_USER_ID, "달팽이")));
@@ -196,7 +202,7 @@ class PrServiceTest {
             when(prRepository.findByRepoIdOrderByPrIdDesc(REPO_ID)).thenReturn(List.of(pr(PR_ID, AUTHOR_ID)));
             when(prRepository.countReviews(anyCollection())).thenReturn(List.of(reviewCount(PR_ID, 3L)));
 
-            List<PrSummaryResponse> result = prService.getPrs(REPO_ID, null);
+            List<PrSummaryResponse> result = prService.getPrs(AUTHOR_ID, REPO_ID, null);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).getAuthor().nickname()).isEqualTo("새싹");
@@ -210,7 +216,7 @@ class PrServiceTest {
         void listByFrontStatus() {
             when(prRepository.findByRepoIdAndStateOrderByPrIdDesc(REPO_ID, PrState.OPEN)).thenReturn(List.of());
 
-            assertThat(prService.getPrs(REPO_ID, "waiting")).isEmpty();
+            assertThat(prService.getPrs(AUTHOR_ID, REPO_ID, "waiting")).isEmpty();
             verify(prRepository).findByRepoIdAndStateOrderByPrIdDesc(REPO_ID, PrState.OPEN);
         }
 
@@ -219,14 +225,14 @@ class PrServiceTest {
         void emptyListSkipsLookups() {
             when(prRepository.findByRepoIdOrderByPrIdDesc(REPO_ID)).thenReturn(List.of());
 
-            assertThat(prService.getPrs(REPO_ID, "")).isEmpty();
+            assertThat(prService.getPrs(AUTHOR_ID, REPO_ID, "")).isEmpty();
             verify(prRepository, never()).findMembers(anyCollection());
         }
 
         @Test
         @DisplayName("모르는 상태 값이면 400")
         void invalidStatus() {
-            assertThatThrownBy(() -> prService.getPrs(REPO_ID, "FOO"))
+            assertThatThrownBy(() -> prService.getPrs(AUTHOR_ID, REPO_ID, "FOO"))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -238,7 +244,7 @@ class PrServiceTest {
             when(prRepository.findFilesByCommitIds(List.of("c1"))).thenReturn(List.of(
                     file("c1", "a.txt", FileState.ADD), file("c1", "b.txt", FileState.UPDATE)));
 
-            PrDetailResponse response = prService.getPr(REPO_ID, PR_ID);
+            PrDetailResponse response = prService.getPr(AUTHOR_ID, REPO_ID, PR_ID);
 
             assertThat(response.getDescription()).isEqualTo("설명");
             assertThat(response.getCommits()).singleElement()
@@ -254,7 +260,7 @@ class PrServiceTest {
         void notFound() {
             when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.empty());
 
-            assertError(() -> prService.getPr(REPO_ID, PR_ID), NotFoundException.class, "PR을 찾을 수 없습니다.");
+            assertError(() -> prService.getPr(AUTHOR_ID, REPO_ID, PR_ID), NotFoundException.class, "PR을 찾을 수 없습니다.");
         }
 
         @Test
@@ -263,7 +269,7 @@ class PrServiceTest {
             when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr(PR_ID, 99L)));
             when(prRepository.findCommitsByPrId(PR_ID)).thenReturn(List.of());
 
-            PrDetailResponse response = prService.getPr(REPO_ID, PR_ID);
+            PrDetailResponse response = prService.getPr(AUTHOR_ID, REPO_ID, PR_ID);
 
             assertThat(response.getAuthor().userId()).isEqualTo(99L);
             assertThat(response.getAuthor().nickname()).isNull();
@@ -363,6 +369,186 @@ class PrServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("PR 승인")
+    class Approve {
+
+        @Test
+        @DisplayName("작성자가 아닌 팀원이 승인하면 APPROVE 가 되고 승인자·시각이 남고 연결 Task 가 DONE 이 된다")
+        void success() {
+            Pr pr = pr(PR_ID, AUTHOR_ID);
+            Task task = taskEntity(REPO_ID);
+            when(taskRepository.findById(TASK_ID)).thenReturn(Optional.of(task));
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+            when(prRepository.findCommitsByPrId(PR_ID)).thenReturn(List.of());
+
+            PrDetailResponse response = prService.approvePr(OTHER_USER_ID, REPO_ID, PR_ID);
+
+            assertThat(pr.getState()).isEqualTo(PrState.APPROVE);
+            assertThat(pr.getApproverId()).isEqualTo(OTHER_USER_ID);
+            assertThat(pr.getEndAt()).isNotNull();
+            assertThat(pr.getReply()).isNull();
+            assertThat(task.getStatus()).isEqualTo(TaskStatus.DONE);
+            assertThat(response.getStatus()).isEqualTo("APPROVE");
+            assertThat(response.getDecidedBy().nickname()).isEqualTo("달팽이");
+        }
+
+        @Test
+        @DisplayName("연결 Task 가 지워진 PR 은 PR 만 승인한다")
+        void taskDeleted() {
+            Pr pr = withId(new Pr("PR", "설명", REPO_ID, null, AUTHOR_ID), PR_ID);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+            when(prRepository.findCommitsByPrId(PR_ID)).thenReturn(List.of());
+
+            prService.approvePr(OTHER_USER_ID, REPO_ID, PR_ID);
+
+            assertThat(pr.getState()).isEqualTo(PrState.APPROVE);
+            verify(taskRepository, never()).findById(anyLong());
+        }
+
+        @Test
+        @DisplayName("본인이 작성한 PR 은 403, 상태를 바꾸지 않는다")
+        void selfApprove() {
+            Pr pr = pr(PR_ID, AUTHOR_ID);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+
+            assertError(() -> prService.approvePr(AUTHOR_ID, REPO_ID, PR_ID),
+                    ForbiddenException.class, "본인이 작성한 PR은 승인할 수 없습니다.");
+            assertThat(pr.getState()).isEqualTo(PrState.OPEN);
+        }
+
+        @Test
+        @DisplayName("이미 처리된 PR 은 409 (본인 검사보다 먼저)")
+        void alreadyDecided() {
+            Pr pr = pr(PR_ID, AUTHOR_ID);
+            ReflectionTestUtils.setField(pr, "state", PrState.DENIED);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+
+            assertError(() -> prService.approvePr(AUTHOR_ID, REPO_ID, PR_ID),
+                    ConflictException.class, "이미 처리된 PR입니다.");
+            assertThat(pr.getState()).isEqualTo(PrState.DENIED);
+        }
+
+        @Test
+        @DisplayName("없는 PR·다른 팀 PR 은 404")
+        void notFound() {
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.empty());
+
+            assertError(() -> prService.approvePr(OTHER_USER_ID, REPO_ID, PR_ID),
+                    NotFoundException.class, "PR을 찾을 수 없습니다.");
+        }
+    }
+
+    @Nested
+    @DisplayName("PR 거부")
+    class Reject {
+
+        @Test
+        @DisplayName("사유와 함께 거부하면 DENIED 가 되고 사유가 저장되며 Task 상태는 그대로다")
+        void success() {
+            Pr pr = pr(PR_ID, AUTHOR_ID);
+            Task task = taskEntity(REPO_ID);
+            lenient().when(taskRepository.findById(TASK_ID)).thenReturn(Optional.of(task));
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+            when(prRepository.findCommitsByPrId(PR_ID)).thenReturn(List.of());
+
+            PrDetailResponse response = prService.rejectPr(OTHER_USER_ID, REPO_ID, PR_ID, rejectRequest("  테스트가 없어요  "));
+
+            assertThat(pr.getState()).isEqualTo(PrState.DENIED);
+            assertThat(pr.getApproverId()).isEqualTo(OTHER_USER_ID);
+            assertThat(pr.getEndAt()).isNotNull();
+            assertThat(response.getReply()).isEqualTo("테스트가 없어요");
+            assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);
+        }
+
+        @Test
+        @DisplayName("사유가 비어 있으면 400, 상태를 바꾸지 않는다")
+        void blankReason() {
+            Pr pr = pr(PR_ID, AUTHOR_ID);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+
+            assertThatThrownBy(() -> prService.rejectPr(OTHER_USER_ID, REPO_ID, PR_ID, rejectRequest(" ")))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("거부 사유를 입력해 주세요.");
+            assertThat(pr.getState()).isEqualTo(PrState.OPEN);
+        }
+
+        @Test
+        @DisplayName("사유가 4000자를 넘으면 400")
+        void tooLongReason() {
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr(PR_ID, AUTHOR_ID)));
+
+            assertThatThrownBy(() -> prService.rejectPr(OTHER_USER_ID, REPO_ID, PR_ID, rejectRequest("가".repeat(4001))))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("4000자 이하");
+        }
+
+        @Test
+        @DisplayName("본인이 작성한 PR 은 403")
+        void selfReject() {
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr(PR_ID, AUTHOR_ID)));
+
+            assertError(() -> prService.rejectPr(AUTHOR_ID, REPO_ID, PR_ID, rejectRequest("사유")),
+                    ForbiddenException.class, "본인이 작성한 PR은 거부할 수 없습니다.");
+        }
+
+        @Test
+        @DisplayName("이미 승인된 PR 은 409")
+        void alreadyDecided() {
+            Pr pr = pr(PR_ID, AUTHOR_ID);
+            ReflectionTestUtils.setField(pr, "state", PrState.APPROVE);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+
+            assertError(() -> prService.rejectPr(OTHER_USER_ID, REPO_ID, PR_ID, rejectRequest("사유")),
+                    ConflictException.class, "이미 처리된 PR입니다.");
+            assertThat(pr.getReply()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("팀원 확인")
+    class Member {
+
+        @Test
+        @DisplayName("팀원이 아니면 목록 조회도 403")
+        void listByOutsider() {
+            when(taskRepository.countMember(REPO_ID, OTHER_USER_ID)).thenReturn(0L);
+
+            assertError(() -> prService.getPrs(OTHER_USER_ID, REPO_ID, null),
+                    ForbiddenException.class, "팀원만 접근할 수 있습니다.");
+            verify(prRepository, never()).findByRepoIdOrderByPrIdDesc(anyLong());
+        }
+
+        @Test
+        @DisplayName("팀원이 아니면 승인 403, PR 을 조회하지도 않는다")
+        void approveByOutsider() {
+            when(taskRepository.countMember(REPO_ID, OTHER_USER_ID)).thenReturn(0L);
+
+            assertError(() -> prService.approvePr(OTHER_USER_ID, REPO_ID, PR_ID),
+                    ForbiddenException.class, "팀원만 접근할 수 있습니다.");
+            verify(prRepository, never()).findByPrIdAndRepoId(anyLong(), anyLong());
+        }
+
+        @Test
+        @DisplayName("팀원이 아니면 생성 403, 저장하지 않는다")
+        void createByOutsider() {
+            when(taskRepository.countMember(REPO_ID, OTHER_USER_ID)).thenReturn(0L);
+
+            assertError(() -> prService.createPr(OTHER_USER_ID, REPO_ID, createRequest("PR", List.of("c1"))),
+                    ForbiddenException.class, "팀원만 접근할 수 있습니다.");
+            verify(prRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("없는 팀이면 404")
+        void teamNotFound() {
+            when(taskRepository.countTeam(OTHER_REPO_ID)).thenReturn(0L);
+
+            assertError(() -> prService.getPr(AUTHOR_ID, OTHER_REPO_ID, PR_ID),
+                    NotFoundException.class, "팀을 찾을 수 없습니다.");
+        }
+    }
+
     // ---------- 테스트 데이터 ----------
 
     // 예외 종류가 곧 응답 코드 (NotFound 404, Forbidden 403, Conflict 409 — GlobalExceptionHandler)
@@ -413,6 +599,12 @@ class PrServiceTest {
         PrUpdateRequest request = new PrUpdateRequest();
         request.setTitle(title);
         request.setDescription(description);
+        return request;
+    }
+
+    private static PrRejectRequest rejectRequest(String reason) {
+        PrRejectRequest request = new PrRejectRequest();
+        request.setReason(reason);
         return request;
     }
 

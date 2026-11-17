@@ -26,7 +26,8 @@ CREATE TABLE repository (
   description VARCHAR(1000) NULL,
   created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (repo_id),
-  CONSTRAINT fk_repository_user FOREIGN KEY (user_id) REFERENCES `user` (user_id)
+  CONSTRAINT fk_repository_user FOREIGN KEY (user_id) REFERENCES `user` (user_id),
+  CONSTRAINT uk_repository_name UNIQUE (repo_name)
 ) ENGINE=InnoDB;
 
 -- 팀원-저장소 관계
