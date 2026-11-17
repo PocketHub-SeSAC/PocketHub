@@ -16,6 +16,7 @@ public class TaskResponse {
     private final TaskStatus status;
     private final Long assigneeId;
     // TODO: task 테이블에 start_date 컬럼이 생기기 전까지는 항상 null
+    // 시작일은 입력받지 않고 Task 생성일로 정한다
     private final LocalDate startDate;
     private final LocalDate dueDate;
     private final TaskPriority priority;
