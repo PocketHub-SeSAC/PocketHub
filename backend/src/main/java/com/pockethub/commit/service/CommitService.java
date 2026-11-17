@@ -37,6 +37,8 @@ public class CommitService {
 
     @Transactional
     public CommitDTO uploadCommit(long userId, long repoId, List<MultipartFile> files, String commitMessage) {
+        if(files.isEmpty()) throw new IllegalArgumentException("업로드할 파일이 존재하지 않습니다.");
+
         // 1. commitId 생성
         String commitId = createCommitId();
         CommitDTO commitDTO = new CommitDTO(commitId, commitMessage);
