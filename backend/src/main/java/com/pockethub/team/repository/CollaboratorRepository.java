@@ -15,4 +15,5 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, Long
 
     Optional<Collaborator> findByRepoAndUser(Repo repo, User user);
 
+    boolean existsByRepoIdAndUserId(Long repoId, Long userId);
 }
