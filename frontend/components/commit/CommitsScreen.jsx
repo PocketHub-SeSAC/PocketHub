@@ -23,7 +23,7 @@ const ACTION = { ADD: ['추가', 'badge ok'], MODIFY: ['수정', 'badge'], DELET
 function CommitSide({ teamId, commitId, me, onClose }) {
   const toast = useToast();
   const info = useAsync(() => getCommit(teamId, commitId), [teamId, commitId]);       // API-019
-  const files = useAsync(() => getCommitFiles(teamId, commitId), [teamId, commitId]); // API-020
+  const files = info.data?.files;
   const handleDownload = async (f) => {
     try { saveBlob(await downloadCommitFile(teamId, commitId, f.fileId), f.name); toast(`${f.name} v${f.version}을(를) 내려받아요.`); }
     catch (err) { toast(err.message); }
@@ -48,21 +48,19 @@ function CommitSide({ teamId, commitId, me, onClose }) {
         </ListState>
         <div>
           <div className='sec-label'>포함된 파일</div>
-          <ListState loading={files.loading} error={files.error} onRetry={() => files.reload()}
-            empty={files.data && !files.data.length} emptyText='포함된 파일이 없어요.'>
+          {(!files || files.length == 0) && '포함된 파일이 없어요.'}
             <ul className='items'>
-              {(files.data || []).map((f) => (
+              {(files || []).map((f) => (
                 <li key={f.fileId} className='item'>
                   <Icon name='file' />
-                  <span className='grow'>{f.name} <span className='badge ver'>v{f.version}</span> <span className='size'>{formatSize(f.size)}</span></span>
-                  <span className={ACTION[f.action][1]}>{ACTION[f.action][0]}</span>
+                  <span className='grow'>{f.fileName} <span className='size'>{formatSize(f.size)}</span></span>
+                  <span>{f.state}</span>
                   {f.action !== 'DELETE' && (
                     <button className='btn btn-sm' type='button' aria-label={`${f.name} v${f.version} 다운로드`} onClick={() => handleDownload(f)}><Icon name='download' />다운로드</button>
                   )}
                 </li>
               ))}
             </ul>
-          </ListState>
         </div>
       </div>
     </aside>
