@@ -1,7 +1,7 @@
 package com.pockethub.pr.service;
 
 import com.pockethub.commit.domain.Commit;
-import com.pockethub.commit.dto.FileState;
+import com.pockethub.file.dto.FileState;
 import com.pockethub.commit.repository.CommitRepository;
 import com.pockethub.common.exception.ConflictException;
 import com.pockethub.common.exception.ForbiddenException;

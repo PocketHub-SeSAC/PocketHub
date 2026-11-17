@@ -1,7 +1,7 @@
 package com.pockethub.file.domain;
 
 import com.pockethub.commit.domain.Commit;
-import com.pockethub.commit.dto.FileState;
+import com.pockethub.file.dto.FileState;
 import com.pockethub.file.dto.FileDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
