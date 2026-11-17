@@ -39,3 +39,6 @@ GET http://localhost:8080/api/v1/teams/1/commits/aaa
 
 ### 커밋 상세 조회
 GET http://localhost:8080/api/v1/teams/1/commits/6ad604de-14ff-4483-8d7e-fe68ad1dad9a
+
+### 커밋 파일 다운로드
+GET http://localhost:8080/api/v1/teams/1/commits/8a89659c-a015-48ff-b67c-e084d64f7491/download

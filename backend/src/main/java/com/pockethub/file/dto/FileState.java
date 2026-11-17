@@ -1,4 +1,4 @@
-package com.pockethub.commit.dto;
+package com.pockethub.file.dto;
 
 public enum FileState {
     ADD,

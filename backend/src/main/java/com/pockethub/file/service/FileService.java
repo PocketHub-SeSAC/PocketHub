@@ -1,10 +1,11 @@
 package com.pockethub.file.service;
 
-import com.pockethub.commit.dto.FileState;
+import com.pockethub.commit.dto.CommitDTO;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.dto.FileDownloadRes;
+import com.pockethub.file.dto.FileState;
 import com.pockethub.file.repository.FileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class FileService {
@@ -157,6 +163,60 @@ public class FileService {
         res.setFileName(file.getOriginalName());
         Path filePath = uploadRoot.resolve(file.getFilePath()).normalize();
         res.setFile(new java.io.File(filePath.toString()));
+
+        return res;
+    }
+
+    // 대용량 처리를 위해서 로컬에 Zip 파일을 만들어 다운로드
+    public FileDownloadRes fileDownload(CommitDTO commitDTO) {
+        FileDownloadRes res = new FileDownloadRes();
+        int count = 0;
+
+        try {
+            Path tempUploadPath = uploadRoot.resolve("temp").normalize();
+            Files.createDirectories(tempUploadPath);
+            Path savedPath = tempUploadPath.resolve(commitDTO.getCommitId() + ".zip").normalize();
+
+            try(FileOutputStream fos = new FileOutputStream(savedPath.toString());
+                ZipOutputStream zos = new ZipOutputStream(fos)) {
+
+                byte[] buffer = new byte[1024];
+
+                for(FileDTO fileDTO : commitDTO.getFiles()) {
+                    if(fileDTO.getState().equals(FileState.DELETE)) continue;
+
+                    // 파일을 압축하는 로직
+                    Path filePath = uploadRoot.resolve(fileDTO.getFilePath()).normalize();
+                    java.io.File originalFile = new java.io.File(filePath.toString());
+                    if(!originalFile.exists()) continue;
+
+                    try(FileInputStream fis = new FileInputStream(originalFile)) {
+                        ZipEntry zipEntry = new ZipEntry(fileDTO.getFileName());
+                        zos.putNextEntry(zipEntry);
+
+                        int length;
+                        while((length = fis.read(buffer)) > 0) {
+                            zos.write(buffer, 0, length);
+                        }
+                        zos.closeEntry();
+                    }
+
+                    count++;
+                }
+            } catch (FileNotFoundException e) {
+                throw new NotFoundException("파일을 찾을 수 없습니다.");
+            }
+
+            if(count == 0) {
+                throw new NotFoundException("해당 Commit 에 다운로드 가능한 파일이 존재하지 않습니다.");
+            }
+
+            res.setFileName(commitDTO.getCommitId() + ".zip");
+            res.setFile(new java.io.File(savedPath.toString()));
+        } catch (IOException e) {
+            // TODO : 커스텀 익셉션 추가
+            throw new RuntimeException("임시 파일 생성 중 문제가 발생했습니다.");
+        }
 
         return res;
     }

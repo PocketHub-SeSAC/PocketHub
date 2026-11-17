@@ -1,7 +1,6 @@
 package com.pockethub.file.dto;
 
 import com.pockethub.commit.domain.Commit;
-import com.pockethub.commit.dto.FileState;
 import com.pockethub.file.domain.File;
 import lombok.Getter;
 import lombok.Setter;

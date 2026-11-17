@@ -6,6 +6,7 @@ import com.pockethub.commit.repository.CommitRepository;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
 import com.pockethub.file.dto.FileDTO;
+import com.pockethub.file.dto.FileDownloadRes;
 import com.pockethub.file.repository.FileRepository;
 import com.pockethub.file.service.FileService;
 import com.pockethub.user.domain.User;
@@ -115,5 +116,16 @@ public class CommitService {
         }
 
         return new CommitDTO(commit);
+    }
+
+    @Transactional(readOnly = true)
+    public FileDownloadRes downloadCommitFiles(String commitId, long repoId) {
+        Commit commit = commitRepository.findByCommitIdAndRepoId(commitId, repoId);
+
+        if(commit == null) {
+            throw new NotFoundException("조회하려는 커밋이 존재하지 않습니다.");
+        }
+
+        return fileService.fileDownload(new CommitDTO(commit));
     }
 }

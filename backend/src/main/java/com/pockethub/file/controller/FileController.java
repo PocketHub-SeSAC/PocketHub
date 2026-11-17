@@ -5,6 +5,7 @@ import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.dto.FileDownloadRes;
 import com.pockethub.file.service.FileService;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +25,7 @@ public class FileController {
     }
 
     @GetMapping("/{fileId}/download")
-    public ResponseEntity<?> fileDownload(
+    public ResponseEntity<Resource> fileDownload(
             @PathVariable("teamId") long repoId,
             @PathVariable("fileId") long fileId
     ) {
