@@ -70,9 +70,10 @@ public class CommitController {
     @GetMapping
     public ResponseEntity<ResponseDTO> findCommitList(
             @PathVariable("teamId") long repoId,
-            @PageableDefault(size=10, page=0, sort="createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size=10, page=0, sort="createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam(value = "usePr", defaultValue = "false") boolean usePr
     ) {
-        Page<CommitDTO> commitList = commitService.findCommitList(repoId, pageable);
+        Page<CommitDTO> commitList = commitService.findCommitList(repoId, pageable, usePr);
 
         return ResponseEntity.ok(new ResponseDTO(Map.of(
                 "commits", commitList.getContent()

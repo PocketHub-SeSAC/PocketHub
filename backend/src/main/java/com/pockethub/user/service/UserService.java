@@ -1,8 +1,10 @@
 package com.pockethub.user.service;
 
 import com.pockethub.common.exception.ConflictException;
+import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.user.domain.User;
 import com.pockethub.user.dto.SignupRequest;
+import com.pockethub.user.dto.UpdateIconRequest;
 import com.pockethub.user.dto.UserResponse;
 import com.pockethub.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,5 +44,22 @@ public class UserService {
         );
 
         return UserResponse.from(user);
+    }
+
+    public UserResponse getMyInfo(Long userId) {
+        return UserResponse.from(findUser(userId));
+    }
+
+    @Transactional
+    public UserResponse updateIcon(Long userId, UpdateIconRequest request) {
+        User user = findUser(userId);
+        user.updateIcon(request.getProfileIcon());
+
+        return UserResponse.from(user);
+    }
+
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("회원 정보를 찾을 수 없습니다"));
     }
 }
