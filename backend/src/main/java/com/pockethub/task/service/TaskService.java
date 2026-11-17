@@ -37,8 +37,10 @@ public class TaskService {
         validateEndAt(request.getEndAt(), LocalDate.now());
 
         TaskPriority priority = request.getPriority() != null ? request.getPriority() : DEFAULT_PRIORITY;
+        // 설명은 선택값이라 안 보내면 빈 문자열로 저장한다
+        String text = request.getText() != null ? request.getText() : "";
         Task task = taskRepository.save(new Task(
-                repoId, request.getTitle(), request.getText(), priority, request.getManagerId(), toDateTime(request.getEndAt())
+                repoId, request.getTitle(), text, priority, request.getManagerId(), toDateTime(request.getEndAt())
         ));
         return TaskResponse.from(task);
     }

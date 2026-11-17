@@ -18,7 +18,6 @@ public class TaskUpdateRequest {
     @Pattern(regexp = "(?s).*\\S.*", message = "Task 제목을 입력해주세요.")
     @Size(max = ValidationRules.TASK_TITLE_MAX, message = "제목은 " + ValidationRules.TASK_TITLE_MAX + "자 이하로 입력해주세요.")
     private String title;
-    @Pattern(regexp = "(?s).*\\S.*", message = "본문은 공백일 수 없습니다.")
     @Size(max = ValidationRules.TASK_TEXT_MAX, message = "본문은 " + ValidationRules.TASK_TEXT_MAX + "자 이하로 입력해주세요.")
     @JsonProperty("description")
     private String text;
