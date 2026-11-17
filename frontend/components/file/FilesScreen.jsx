@@ -114,6 +114,7 @@ export default function FilesScreen() {
   const { teamId, me, members } = useTeam();
   const [q, setQuery] = useQuery();
   const files = useAsync(() => getFiles(teamId), [teamId]);
+  // 목록은 필요 없고 툴바에 표시할 전체 커밋 수(totalElements)만 필요해서 size: 1 로 요청
   const commits = useAsync(() => getCommitsPage(teamId, { page: 0, size: 1 }), [teamId]);
   const fileId = q.get('file');
   const modal = q.get('modal');
