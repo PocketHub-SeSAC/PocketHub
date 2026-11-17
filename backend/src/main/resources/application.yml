@@ -32,3 +32,7 @@ upload:
   dir: uploads
 #  max-size:            # TODO: 파일 1개 최대 크기 (예: 10MB)
 #  allowed-extensions:  # TODO: 허용 확장자 목록
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration-minutes: 60
