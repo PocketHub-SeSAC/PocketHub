@@ -30,12 +30,14 @@ export function fileState(db, file) {
 /* 백엔드 FileDTO 와 같은 키: fileId, fileName, fileSize, state(ADD|UPDATE|DELETE), uploaderId, uploaderNickname, uploadedAt, commitId.
    version 은 백엔드 DTO 에 없지만 화면(v2 배지·버전 칸)이 쓰므로 함께 준다. versions 는 adapter 가 [] 로 고정해서 주지 않는다. */
 const FILE_STATE = { ADD: 'ADD', MODIFY: 'UPDATE', DELETE: 'DELETE' };
+/* 저장은 바이트, 응답은 백엔드처럼 KB(소수)로 준다 */
+const toKb = (bytes) => (Number(bytes) || 0) / 1024;
 const fileView = (db, f, st) => {
   const cur = st.current;
   const it = db.commits.find((c) => c.id === cur.commitId)?.items.find((x) => x.versionId === cur.id);
   const u = db.users.find((x) => x.id === cur.uploaderId);
   return {
-    fileId: f.id, fileName: f.name, fileSize: cur.size, version: cur.version,
+    fileId: f.id, fileName: f.name, fileSize: toKb(cur.size), version: cur.version,
     state: FILE_STATE[it?.action] || 'ADD',
     uploaderId: cur.uploaderId, uploaderNickname: u ? u.nickname : '',
     uploadedAt: cur.uploadedAt, commitId: cur.commitId,
@@ -50,7 +52,7 @@ export const commitView = (db, c) => ({
 export const commitFilesView = (db, c) => c.items.map((it) => {
   const f = db.files.find((x) => x.id === it.fileId);
   const v = db.versions.find((x) => x.id === it.versionId);
-  return { fileId: it.fileId, name: f ? f.name : '(알 수 없는 파일)', size: v ? v.size : 0, version: v ? v.version : 1, action: it.action };
+  return { fileId: it.fileId, name: f ? f.name : '(알 수 없는 파일)', size: v ? toKb(v.size) : 0, version: v ? v.version : 1, action: it.action };
 });
 
 function findVisibleFile(db, team, fileId) {
@@ -73,8 +75,9 @@ const fakeBlob = (name, version) => ({
 export const handlers = {
   'files.upload': ({ db, user, params, body }) => {
     const team = requireMember(db, params.teamId, user);
-    const message = str(body && body.get ? body.get('message') : '');
-    const files = body && body.getAll ? body.getAll('file').filter((x) => x && typeof x === 'object') : [];
+    // 백엔드와 같은 이름(commitMessage, files)을 먼저 읽고, 예전 이름(message, file)도 받는다
+    const message = str(body && body.get ? (body.get('commitMessage') ?? body.get('message')) : '');
+    const files = body && body.getAll ? [...body.getAll('files'), ...body.getAll('file')].filter((x) => x && typeof x === 'object') : [];
     if (files.length > 1) fail(400, ONE_FILE_ONLY);
     const file = files[0];
     const bad = validateFile(file);
