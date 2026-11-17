@@ -1,5 +1,6 @@
 package com.pockethub.team.service;
 
+import com.pockethub.file.service.FileService;
 import com.pockethub.user.domain.User;
 import com.pockethub.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -8,15 +9,17 @@ import com.pockethub.team.domain.Repo;
 import com.pockethub.team.dto.*;
 import com.pockethub.team.repository.CollaboratorRepository;
 import com.pockethub.team.repository.RepoRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.pockethub.common.exception.ConflictException;
 import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 
+import java.io.IOException;
 import java.util.List;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true) // 기본은 조회 전용
@@ -25,6 +28,7 @@ public class TeamService {
     private final RepoRepository repoRepository;
     private final CollaboratorRepository collaboratorRepository;
     private final UserRepository userRepository;
+    private final FileService fileService;
 
     // ===== 팀 =====
 
@@ -80,7 +84,16 @@ public class TeamService {
     public void deleteTeam(Long loginUserId, Long teamId) {
         Repo repo = findRepo(teamId);
         checkOwner(repo, loginUserId);
-        repoRepository.delete(repo);   // 팀원 연결은 DB의 ON DELETE CASCADE로 같이 삭제
+
+        repoRepository.delete(repo);
+        repoRepository.flush();   // DB 삭제를 먼저 실행: 실패하면 아래 폴더 삭제까지 안 감
+
+        // 팀 삭제 성공 후 팀 파일 폴더 삭제
+        try {
+            fileService.cleanupSavedFiles(teamId, null);
+        } catch (IOException | RuntimeException e) {
+            log.warn("팀 폴더 삭제 실패. teamId={}", teamId, e);
+        }
     }
 
     // ===== 팀원 =====
