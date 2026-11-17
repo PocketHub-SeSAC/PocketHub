@@ -64,4 +64,20 @@ public class Pr {
         this.title = title;
         this.text = text;
     }
+
+    public void approve(long approverId) {
+        decide(PrState.APPROVE, approverId, null);
+    }
+
+    public void reject(long approverId, String reason) {
+        decide(PrState.DENIED, approverId, reason);
+    }
+
+    // 승인·거부 공통: 상태, 처리한 사람, 처리 시각, 거부 사유(승인이면 null)
+    private void decide(PrState state, long approverId, String reply) {
+        this.state = state;
+        this.approverId = approverId;
+        this.endAt = LocalDateTime.now();
+        this.reply = reply;
+    }
 }
