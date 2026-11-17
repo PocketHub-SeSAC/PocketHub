@@ -18,14 +18,14 @@ const toBody = (t) => ({
   description: t.description || '',
   priority: t.priority,
   assigneeId: t.assigneeId ?? null,
-  startDate: t.startDate || null,
   dueDate: t.dueDate || null,
 });
 
 export const createTask = (teamId, task) =>
   request(TASKS_API.create, { params: { teamId }, body: toBody(task) }).then(normalizeTask);
 
-export const getTasks = (teamId) => request(TASKS_API.list, { params: { teamId } }).then(normalizeTasks);
+/* 백엔드는 data.tasks 로 감싸 보낸다. 목업은 감싸지 않은 배열 */
+export const getTasks = (teamId) => request(TASKS_API.list, { params: { teamId } }).then((res) => normalizeTasks(res?.tasks ?? res));
 
 export const getTask = (teamId, taskId) =>
   request(TASKS_API.detail, { params: { teamId, taskId }, handle404: false }).then(normalizeTask);
@@ -40,4 +40,4 @@ export const updateTaskStatus = (teamId, taskId, status) =>
 export const deleteTask = (teamId, taskId) => request(TASKS_API.remove, { params: { teamId, taskId } });
 
 export const getTaskPulls = (teamId, taskId) =>
-  request(TASKS_API.pulls, { params: { teamId, taskId }, handle404: false }).then(normalizePulls);
+  request(TASKS_API.pulls, { params: { teamId, taskId }, handle404: false }).then((res) => normalizePulls(res?.pulls ?? res)); // 백엔드 data.pulls, 목업은 배열

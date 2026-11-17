@@ -136,17 +136,19 @@ export function normalizeTask(t) {
     description: pick(t, 'description', 'content') || '',
     status: TASK_STATUS.includes(st) ? st : 'TODO',
     priority: PRIORITY[String(pick(t, 'priority') || 'MEDIUM').toUpperCase()] || 'MEDIUM',
-    assignee: normalizeMember(pick(t, 'assignee', 'manager')),
+    // 백엔드는 assigneeId(숫자 또는 null)만 보낸다 → {id} 만 남기고, 닉네임·아이콘은 화면이 팀원 목록으로 채운다
+    assignee: normalizeMember(pick(t, 'assignee', 'manager')) ?? (pick(t, 'assigneeId') != null ? { id: pick(t, 'assigneeId') } : null),
     startDate: pick(t, 'startDate', 'workDate') || '',
     dueDate: pick(t, 'dueDate', 'deadline', 'endDate') || '',
-    pullCount: Number(pick(t, 'pullCount', 'prCount') || 0),
+    // 백엔드는 pullCount 를 보내지 않는다 → 없으면 undefined (화면의 PR 배지는 숨겨진다)
+    pullCount: pick(t, 'pullCount', 'prCount') != null ? Number(pick(t, 'pullCount', 'prCount')) : undefined,
     createdAt: pick(t, 'createdAt'),
   };
 }
 export const normalizeTasks = (x) => list(x, normalizeTask);
 
 /* PR 상태: 화면·URL 은 소문자(waiting/approved/closed), 서버는 대문자로 보낸다고 가정 */
-const PR_STATUS = { WAITING: 'waiting', OPEN: 'waiting', APPROVED: 'approved', CLOSED: 'closed', REJECTED: 'closed' };
+const PR_STATUS = { WAITING: 'waiting', OPEN: 'waiting', APPROVED: 'approved', APPROVE: 'approved', CLOSED: 'closed', REJECTED: 'closed', DENIED: 'closed' };
 export const pullStatusToApi = (s) => (s ? String(s).toUpperCase() : undefined);
 export function normalizePull(p) {
   const task = pick(p, 'task');
