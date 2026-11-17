@@ -102,6 +102,8 @@ public class GlobalExceptionHandler {
     ) {
         ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage(), extractPath(request));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handlerUnauthorized(
             UnauthorizedException exception, WebRequest request
@@ -116,7 +118,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlerIllegalArgument(
             RuntimeException exception, WebRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage(), extractPath(request));
+        System.out.println(exception.getMessage());
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "정의되지 않은 서버 내부 오류가 발생했습니다.", extractPath(request));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
