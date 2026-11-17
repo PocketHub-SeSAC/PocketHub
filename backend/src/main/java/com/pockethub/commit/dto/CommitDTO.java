@@ -19,6 +19,7 @@ public class CommitDTO {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
     private List<FileDTO> files;
+    private Long prId;
 
     public CommitDTO(String commitId, String commitMessage) {
         this.commitId = commitId;
@@ -33,5 +34,6 @@ public class CommitDTO {
         this.createdAt = commit.getCreatedAt();
         this.files = commit.getFiles().stream()
                 .map(FileDTO::new).toList();
+        this.prId = commit.getPrId();
     }
 }

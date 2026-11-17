@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CommitRepository extends JpaRepository<Commit, String> {
     Page<Commit> findByRepoId(long repoId, Pageable pageable);
+    Page<Commit> findByRepoIdAndPrIdIsNull(long repoId, Pageable pageable);
 
     Commit findByCommitIdAndRepoId(String commitId, long repoId);
 }
