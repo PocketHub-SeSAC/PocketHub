@@ -1,19 +1,77 @@
-### PR 생성 - repoId 1 저장소, commitIds 는 commit-test.http 로 만든 커밋 ID 를 넣는다
-POST http://localhost:8080/api/v1/teams/1/pulls
-X-User-Id: 1
+### PR·리뷰 API 테스트 (JWT 토큰 방식)
+# 1) 맨 위 "로그인" 3개를 먼저 실행하면 토큰이 저장된다 (authorToken·memberToken·outsiderToken)
+#    - 작성자: test1 (1번 팀원), 팀원: test2 (1번 팀원), 비팀원: 아래 회원가입으로 만든 계정
+# 2) "PR 생성" 을 실행하면 prId 가, "리뷰 작성 (201)" 을 실행하면 reviewId 가 자동 저장된다
+# 3) commitIds 는 commit-test.http 로 만든 내 커밋 ID 로, 아래 변수 값은 로컬 DB 에 맞게 바꾼다
+
+@baseUrl = http://localhost:8080/api/v1
+@teamId = 1
+@otherTeamId = 2
+@commitId = abc5d66e-d1f0-4e41-bce4-b4332e7827e4
+# 거부·삭제 테스트용: 아직 승인·거부하지 않은(OPEN) 다른 PR 번호
+@rejectPrId = 2
+@deletePrId = 3
+
+### 로그인 - PR 작성자 (test1)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test1@pockethub.local",
+  "password": "test1234!"
+}
+
+> {% client.global.set("authorToken", response.body.data.accessToken); %}
+
+### 로그인 - 같은 팀 팀원 (test2)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@pockethub.local",
+  "password": "test1234!"
+}
+
+> {% client.global.set("memberToken", response.body.data.accessToken); %}
+
+### 회원가입 - 비팀원 (처음 한 번만, 이미 있으면 409)
+POST {{baseUrl}}/members
+Content-Type: application/json
+
+{
+  "email": "outsider@pockethub.local",
+  "password": "test1234!",
+  "nickname": "비팀원"
+}
+
+### 로그인 - 비팀원
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "outsider@pockethub.local",
+  "password": "test1234!"
+}
+
+> {% client.global.set("outsiderToken", response.body.data.accessToken); %}
+
+### PR 생성 (201), 응답의 prId 를 저장
+POST {{baseUrl}}/teams/{{teamId}}/pulls
+Authorization: Bearer {{authorToken}}
 Content-Type: application/json
 
 {
   "title": "[Feat] 파일 업로드 기능",
   "description": "업로드 커밋을 PR 로 묶습니다.",
-  "commitIds": ["abc5d66e-d1f0-4e41-bce4-b4332e7827e4"],
+  "commitIds": ["{{commitId}}"],
   "taskId": 1
 }
 
+> {% client.global.set("prId", response.body.prId); %}
 
 ### PR 생성 - 커밋 없이 요청 (400)
-POST http://localhost:8080/api/v1/teams/1/pulls
-X-User-Id: 1
+POST {{baseUrl}}/teams/{{teamId}}/pulls
+Authorization: Bearer {{authorToken}}
 Content-Type: application/json
 
 {
@@ -23,35 +81,42 @@ Content-Type: application/json
 }
 
 ### PR 생성 - 없는 Task·다른 팀 Task (404)
-POST http://localhost:8080/api/v1/teams/1/pulls
-X-User-Id: 1
+POST {{baseUrl}}/teams/{{teamId}}/pulls
+Authorization: Bearer {{authorToken}}
 Content-Type: application/json
 
 {
   "title": "다른 팀 Task PR",
-  "commitIds": ["abc5d66e-d1f0-4e41-bce4-b4332e7827e4"],
+  "commitIds": ["{{commitId}}"],
   "taskId": 9999
 }
 
 ### PR 목록 - 전체 (최신순)
-GET http://localhost:8080/api/v1/teams/1/pulls
-X-User-Id: 1
+GET {{baseUrl}}/teams/{{teamId}}/pulls
+Authorization: Bearer {{authorToken}}
 
 ### PR 목록 - 상태 필터 (OPEN·APPROVE·DENIED, 프론트 값 WAITING·APPROVED·CLOSED 도 됨)
-GET http://localhost:8080/api/v1/teams/1/pulls?status=OPEN
-X-User-Id: 1
+GET {{baseUrl}}/teams/{{teamId}}/pulls?status=OPEN
+Authorization: Bearer {{authorToken}}
+
+### PR 목록 - 팀원이 아닌 사람 (403)
+GET {{baseUrl}}/teams/{{teamId}}/pulls
+Authorization: Bearer {{outsiderToken}}
+
+### PR 목록 - 토큰 없이 (401)
+GET {{baseUrl}}/teams/{{teamId}}/pulls
 
 ### PR 상세 - 커밋 목록 포함
-GET http://localhost:8080/api/v1/teams/1/pulls/1
-X-User-Id: 1
+GET {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}
+Authorization: Bearer {{authorToken}}
 
-### PR 상세 - 다른 팀 경로로 조회 (404)
-GET http://localhost:8080/api/v1/teams/2/pulls/1
-X-User-Id: 1
+### PR 상세 - 다른 팀 경로로 조회 (404, 그 팀원이 아니면 403)
+GET {{baseUrl}}/teams/{{otherTeamId}}/pulls/{{prId}}
+Authorization: Bearer {{memberToken}}
 
-### PR 수정 - 작성자 본인, OPEN 상태일 때만 제목·설명 수정
-PATCH http://localhost:8080/api/v1/teams/1/pulls/1
-X-User-Id: 1
+### PR 수정 - 작성자 본인, OPEN 상태일 때만 제목·설명 수정 (200)
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}
+Authorization: Bearer {{authorToken}}
 Content-Type: application/json
 
 {
@@ -60,51 +125,17 @@ Content-Type: application/json
 }
 
 ### PR 수정 - 작성자가 아닌 사람 (403)
-PATCH http://localhost:8080/api/v1/teams/1/pulls/1
-X-User-Id: 2
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}
+Authorization: Bearer {{memberToken}}
 Content-Type: application/json
 
 {
   "title": "남이 수정"
 }
 
-### PR 승인 - 작성자 본인 (403)
-POST http://localhost:8080/api/v1/teams/1/pulls/1/approve
-X-User-Id: 1
-
-### PR 승인 - 작성자가 아닌 팀원 (200), 연결 Task 가 DONE 으로 바뀜
-POST http://localhost:8080/api/v1/teams/1/pulls/1/approve
-X-User-Id: 2
-
-### PR 승인 - 이미 처리된 PR (409)
-POST http://localhost:8080/api/v1/teams/1/pulls/1/approve
-X-User-Id: 2
-
-### PR 거부 - 사유 없이 (400), 다른 PR 번호로 시험
-POST http://localhost:8080/api/v1/teams/1/pulls/2/reject
-X-User-Id: 2
-Content-Type: application/json
-
-{
-  "reason": " "
-}
-
-### PR 거부 - 사유와 함께 (200), 사유는 응답 reply 로 확인
-POST http://localhost:8080/api/v1/teams/1/pulls/2/reject
-X-User-Id: 2
-Content-Type: application/json
-
-{
-  "reason": "테스트 코드가 없어요. 추가 후 다시 올려 주세요."
-}
-
-### PR 목록 - 팀원이 아닌 사람 (403)
-GET http://localhost:8080/api/v1/teams/1/pulls
-X-User-Id: 999
-
 ### 리뷰 작성 - PR 작성자 본인 (403), 리뷰어 지정 없이 작성자를 뺀 팀원 누구나 가능
-POST http://localhost:8080/api/v1/teams/1/pulls/1/reviews
-X-User-Id: 1
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
+Authorization: Bearer {{authorToken}}
 Content-Type: application/json
 
 {
@@ -112,43 +143,45 @@ Content-Type: application/json
 }
 
 ### 리뷰 작성 - 내용 없이 (400)
-POST http://localhost:8080/api/v1/teams/1/pulls/1/reviews
-X-User-Id: 2
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
+Authorization: Bearer {{memberToken}}
 Content-Type: application/json
 
 {
   "content": " "
 }
 
-### 리뷰 작성 (201), 응답의 reviewId 를 아래 수정·삭제에 사용
-POST http://localhost:8080/api/v1/teams/1/pulls/1/reviews
-X-User-Id: 2
+### 리뷰 작성 (201), 응답의 reviewId 를 저장
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
+Authorization: Bearer {{memberToken}}
 Content-Type: application/json
 
 {
   "content": "변수 이름이 명확해서 읽기 좋아요."
 }
 
-### 리뷰 목록 - 작성순 (200), PR 목록의 reviewCount 도 함께 늘어남
-GET http://localhost:8080/api/v1/teams/1/pulls/1/reviews
-X-User-Id: 1
+> {% client.global.set("reviewId", response.body.reviewId); %}
+
+### 리뷰 목록 - 작성순 (200), PR 작성자도 볼 수 있음. PR 목록의 reviewCount 도 늘어남
+GET {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
+Authorization: Bearer {{authorToken}}
 
 ### 리뷰 목록 - 팀원이 아닌 사람 (403)
-GET http://localhost:8080/api/v1/teams/1/pulls/1/reviews
-X-User-Id: 999
+GET {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
+Authorization: Bearer {{outsiderToken}}
 
-### 리뷰 수정 - 작성자가 아닌 사람 (403)
-PATCH http://localhost:8080/api/v1/teams/1/pulls/1/reviews/1
-X-User-Id: 1
+### 리뷰 수정 - 리뷰 작성자가 아닌 사람 (403)
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews/{{reviewId}}
+Authorization: Bearer {{authorToken}}
 Content-Type: application/json
 
 {
   "content": "남의 리뷰 고치기"
 }
 
-### 리뷰 수정 - 작성자 본인 (200)
-PATCH http://localhost:8080/api/v1/teams/1/pulls/1/reviews/1
-X-User-Id: 2
+### 리뷰 수정 - 리뷰 작성자 본인 (200)
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews/{{reviewId}}
+Authorization: Bearer {{memberToken}}
 Content-Type: application/json
 
 {
@@ -156,22 +189,65 @@ Content-Type: application/json
 }
 
 ### 리뷰 수정 - 다른 PR 경로로 같은 리뷰 번호 (404)
-PATCH http://localhost:8080/api/v1/teams/1/pulls/2/reviews/1
-X-User-Id: 2
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{rejectPrId}}/reviews/{{reviewId}}
+Authorization: Bearer {{memberToken}}
 Content-Type: application/json
 
 {
   "content": "경로가 다른 PR"
 }
 
-### 리뷰 삭제 - 작성자 본인 (204)
-DELETE http://localhost:8080/api/v1/teams/1/pulls/1/reviews/1
-X-User-Id: 2
+### 리뷰 삭제 - 리뷰 작성자가 아닌 사람 (403)
+DELETE {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews/{{reviewId}}
+Authorization: Bearer {{authorToken}}
+
+### 리뷰 삭제 - 리뷰 작성자 본인 (204)
+DELETE {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews/{{reviewId}}
+Authorization: Bearer {{memberToken}}
 
 ### PR 삭제 - 작성자가 아닌 사람 (403)
-DELETE http://localhost:8080/api/v1/teams/1/pulls/1
-X-User-Id: 2
+DELETE {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}
+Authorization: Bearer {{memberToken}}
 
-### PR 삭제 - 작성자 본인 (204), 묶였던 커밋은 다시 PR 에 넣을 수 있게 풀림
-DELETE http://localhost:8080/api/v1/teams/1/pulls/1
-X-User-Id: 1
+### PR 승인 - 작성자 본인 (403)
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/approve
+Authorization: Bearer {{authorToken}}
+
+### PR 승인 - 작성자가 아닌 팀원 (200), 연결 Task 가 DONE 으로 바뀜
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/approve
+Authorization: Bearer {{memberToken}}
+
+### PR 승인 - 이미 처리된 PR (409)
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/approve
+Authorization: Bearer {{memberToken}}
+
+### PR 수정 - 이미 처리된 PR (409)
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}
+Authorization: Bearer {{authorToken}}
+Content-Type: application/json
+
+{
+  "title": "승인 후 수정"
+}
+
+### PR 거부 - 사유 없이 (400), 다른 OPEN PR 로 시험
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{rejectPrId}}/reject
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "reason": " "
+}
+
+### PR 거부 - 사유와 함께 (200), 사유는 응답 reply 로 확인
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{rejectPrId}}/reject
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "reason": "테스트 코드가 없어요. 추가 후 다시 올려 주세요."
+}
+
+### PR 삭제 - 작성자 본인 (204), OPEN PR 만 가능. 묶였던 커밋은 다시 PR 에 넣을 수 있게 풀림
+DELETE {{baseUrl}}/teams/{{teamId}}/pulls/{{deletePrId}}
+Authorization: Bearer {{authorToken}}
