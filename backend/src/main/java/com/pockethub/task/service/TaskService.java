@@ -9,6 +9,7 @@ import com.pockethub.task.dto.TaskRequest;
 import com.pockethub.task.dto.TaskResponse;
 import com.pockethub.task.dto.TaskStatusRequest;
 import com.pockethub.task.repository.TaskRepository;
+import com.pockethub.task.dto.TaskPullResponse;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,8 +37,10 @@ public class TaskService {
         validateEndAt(request.getEndAt(), LocalDate.now());
 
         TaskPriority priority = request.getPriority() != null ? request.getPriority() : DEFAULT_PRIORITY;
+        // 설명은 선택값이라 안 보내면 빈 문자열로 저장한다
+        String text = request.getText() != null ? request.getText() : "";
         Task task = taskRepository.save(new Task(
-                repoId, request.getTitle(), request.getText(), priority, request.getManagerId(), toDateTime(request.getEndAt())
+                repoId, request.getTitle(), text, priority, request.getManagerId(), toDateTime(request.getEndAt())
         ));
         return TaskResponse.from(task);
     }
@@ -94,6 +97,19 @@ public class TaskService {
                 .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
 
         taskRepository.delete(task);
+    }
+
+    // Task에 연결된 PR 목록 (최신순). 연결된 PR이 없으면 빈 목록
+    @Transactional(readOnly = true)
+    public List<TaskPullResponse> findTaskPulls(long userId, long repoId, long taskId) {
+        validateMember(userId, repoId);
+
+        taskRepository.findByTaskIdAndRepoId(taskId, repoId)
+                .orElseThrow(() -> new NotFoundException("Task를 찾을 수 없습니다."));
+
+        return taskRepository.findPrsByTask(repoId, taskId).stream()
+                .map(TaskPullResponse::new)
+                .toList();
     }
 
 

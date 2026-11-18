@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.pockethub.task.dto.TaskPullResponse;
 
 @RestController
 @RequestMapping("/api/v1/teams/{teamId}/tasks")
@@ -25,6 +26,7 @@ public class TaskController {
     private static final String UPDATE_MESSAGE = "Task가 수정되었습니다.";
     private static final String UPDATE_STATUS_MESSAGE = "Task 상태가 변경되었습니다.";
     private static final String DELETE_MESSAGE = "Task가 삭제되었습니다.";
+    private static final String FIND_PULLS_MESSAGE = "Task별 PR 조회에 성공했습니다.";
 
     private final TaskService taskService;
 
@@ -105,6 +107,21 @@ public class TaskController {
     ) {
         taskService.deleteTask(currentUserId(authentication), repoId, taskId);
         return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, Map.of("taskId", taskId), DELETE_MESSAGE));
+    }
+
+    // API-028 Task별 PR 조회
+    @GetMapping("/{taskId}/pulls")
+    public ResponseEntity<ResponseDTO> findTaskPulls(
+            Authentication authentication,
+            @PathVariable("teamId") long repoId,
+            @PathVariable("taskId") long taskId
+    ) {
+        List<Map<String, Object>> pulls = taskService.findTaskPulls(currentUserId(authentication), repoId, taskId)
+                .stream()
+                .map(TaskPullResponse::toMap)
+                .toList();
+        return ResponseEntity.ok(new ResponseDTO(
+                HttpStatus.OK, Map.of("taskId", taskId, "pulls", pulls), FIND_PULLS_MESSAGE));
     }
 
     // TODO : JWT 필터로 바뀐 뒤에도 principal 이 userId 인지 확인
