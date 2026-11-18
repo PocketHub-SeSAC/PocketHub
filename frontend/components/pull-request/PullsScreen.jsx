@@ -12,7 +12,7 @@ import useAsync from '@/hooks/useAsync';
 import useQuery from '@/hooks/useQuery';
 import ListState from '@/components/common/ListState';
 import Icon from '@/components/common/Icon';
-import Who from '@/components/common/Who';
+import Who, { fillProfile } from '@/components/common/Who';
 import { formatDate } from '@/utils/format';
 import PullDetail, { STATUS } from './PullDetail';
 import NewPullModal from './NewPullModal';
@@ -22,7 +22,7 @@ const TABS = ['waiting', 'approved', 'closed'];
 const EMPTY = { waiting: '리뷰를 기다리는 PR이 없어요.', approved: '아직 승인된 PR이 없어요.', closed: '종료된 PR이 없어요.' };
 
 export default function PullsScreen() {
-  const { teamId, me } = useTeam();
+  const { teamId, me, members } = useTeam();
   const { prId } = useParams();
   const router = useRouter();
   const [q, setQuery] = useQuery();
@@ -75,7 +75,7 @@ export default function PullsScreen() {
                   <span className='no'>#{p.id}</span>
                   <h3>{p.title}</h3>
                   <div className='meta'>
-                    <Who user={p.author} me={p.author?.id === me.id} />
+                    <Who user={fillProfile(members, p.author)} me={p.author?.id === me.id} />
                     {canDecidePull(p, me) && <span className='badge pri'>내 리뷰 차례</span>}
                   </div>
                   <div className='meta'>

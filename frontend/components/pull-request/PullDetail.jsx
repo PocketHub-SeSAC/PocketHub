@@ -11,7 +11,8 @@ import { getPull, getReviews, createReview, updateReview, deleteReview, approveP
 import useAsync from '@/hooks/useAsync';
 import ListState from '@/components/common/ListState';
 import Icon from '@/components/common/Icon';
-import Who from '@/components/common/Who';
+import Who, { fillProfile } from '@/components/common/Who';
+import { useTeam } from '@/components/team/TeamShell';
 import ReviewItem from '@/components/review/ReviewItem';
 import RejectModal from './RejectModal';
 import { EditPullModal, DeletePullModal } from './PullEditModals';
@@ -19,10 +20,12 @@ import { useToast } from '@/components/common/Toast';
 import { formatDate, formatSize } from '@/utils/format';
 
 export const STATUS = { waiting: ['리뷰 대기', 'badge wait', 'st-wait'], approved: ['승인', 'badge ok', 'st-ok'], closed: ['종료', 'badge end', 'st-end'] };
-const ACTION = { ADD: ['추가', 'badge ok'], MODIFY: ['수정', 'badge'], DELETE: ['삭제', 'badge end'] };
+const ACTION = { ADD: ['+ 추가', 'chg add'], MODIFY: ['~ 수정', 'chg'], DELETE: ['− 삭제', 'chg del'] };
 
 export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen, onChanged, onDeleted }) {
   const toast = useToast();
+  const { members } = useTeam();
+  const who = (u) => fillProfile(members, u);
   const pr = useAsync(() => getPull(teamId, prId), [teamId, prId]);
   const reviews = useAsync(REVIEWS_ENABLED ? () => getReviews(teamId, prId) : null, [teamId, prId]);
   const [text, setText] = useState('');
@@ -67,7 +70,7 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
         <h3>{p.title}</h3>
         <span className={badgeCls}>{label}</span>
         <div className='pr-meta'>
-          <span><span className='k'>작성자</span><Who user={p.author} me={isMine} /></span>
+          <span><span className='k'>작성자</span><Who user={who(p.author)} me={isMine} /></span>
           <span><span className='k'>Task</span>{p.task ? <Link className='chip' href={`/teams/${teamId}/tasks?task=${p.task.id}`}><Icon name='task' size={12} />{p.task.title}</Link> : <span className='muted'>삭제된 Task</span>}</span>
           <span className='muted'>{formatDate(p.createdAt)}</span>
           {canEdit && (
@@ -92,6 +95,7 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
                   <li key={c.id} className='item'>
                     <Icon name='commit' />
                     <Link className='grow' href={`/teams/${teamId}/commits?commit=${c.id}`}>{c.message}</Link>
+                    <Who user={who(c.author)} me={c.author?.id === me.id} />
                     <span className='id'>{c.hash}</span>
                   </li>
                 ))}
@@ -150,8 +154,8 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
             {p.status === 'waiting' && isMine && (
               <span className='hint muted'>내가 만든 PR이라 다른 팀원의 승인·거부를 기다리고 있어요.</span>
             )}
-            {p.status === 'approved' && <span className='stamp'><Icon name='check' />승인됨{p.decidedBy?.nickname ? ` · ${p.decidedBy.nickname}` : ''} · {formatDate(p.decidedAt)}</span>}
-            {p.status === 'closed' && <span className='stamp end'><Icon name='x' />거부됨 · 종료{p.decidedBy?.nickname ? ` · ${p.decidedBy.nickname}` : ''}{p.decidedAt ? ` · ${formatDate(p.decidedAt)}` : ''}</span>}
+            {p.status === 'approved' && <span className='stamp'><Icon name='check' />승인됨<Who user={who(p.decidedBy)} me={p.decidedBy?.id === me.id} />{p.decidedAt && <span>{formatDate(p.decidedAt)}</span>}</span>}
+            {p.status === 'closed' && <span className='stamp end'><Icon name='x' />거부됨 · 종료<Who user={who(p.decidedBy)} me={p.decidedBy?.id === me.id} />{p.decidedAt && <span>{formatDate(p.decidedAt)}</span>}</span>}
           </div>
           {p.status === 'approved' && p.task && <p className='note-line'><Icon name='task' size={12} />연결된 Task({p.task.title})가 DONE으로 옮겨졌어요.</p>}
           {p.status === 'closed' && p.reply && (
