@@ -17,8 +17,7 @@ import { formatDate, formatDateTime, formatSize } from '@/utils/format';
 import FilesToolbar from '@/components/file/FilesToolbar';
 import UploadModal from '@/components/file/UploadModal';
 
-const TYPE = { UPLOAD: ['업로드', 'badge'], DELETE: ['삭제', 'badge end'] };
-const ACTION = { ADD: ['추가', 'badge ok'], MODIFY: ['수정', 'badge'], DELETE: ['삭제', 'badge end'] };
+const ACTION = { ADD: ['추가', 'badge ok'], UPDATE: ['수정', 'badge'], DELETE: ['삭제', 'badge end'] };
 
 function CommitSide({ teamId, commitId, me, onClose }) {
   const toast = useToast();
@@ -51,14 +50,14 @@ function CommitSide({ teamId, commitId, me, onClose }) {
           )}
         </ListState>
         <div>
-          <div className='sec-label'>포함된 파일 <button className='btn btn-sm' type='button' aria-label={`전체 다운로드`} onClick={() => handleDownload()}><Icon name='download' />다운로드</button></div>
+          <div className='sec-label'>포함된 파일 {(files && files.length > 0 && files[0].state !== 'DELETE') && <button className='btn btn-sm' type='button' aria-label={`전체 다운로드`} onClick={() => handleDownload()}><Icon name='download' />다운로드</button>}</div>
           {(!files || files.length == 0) && '포함된 파일이 없어요.'}
             <ul className='items'>
               {(files || []).map((f) => (
                 <li key={f.fileId} className='item'>
                   <Icon name='file' />
                   <span className='grow'>{f.fileName} <span className='size'>{formatSize(f.size)}</span></span>
-                  <span>{f.state}</span>
+                  <span className={ACTION[f.state]?.[1]}>{ACTION[f.state]?.[0] || f.state}</span>
                   {f.state !== 'DELETE' && (
                     <button className='btn btn-sm' type='button' aria-label={`다운로드`} onClick={() => handleDownloadFile(f)}><Icon name='download' />다운로드</button>
                   )}
