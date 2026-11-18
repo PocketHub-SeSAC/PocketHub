@@ -6,7 +6,7 @@ import '@/styles/themes.css';
 import '@/styles/base.css';
 
 export const metadata = {
-  title: '포켓 헙 · PoketHub',
+  title: '포켓 헙 · Pocket Hub',
   icons: { icon: 'data:,' },
 };
 
