@@ -22,6 +22,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 /* 영문 꼬리표(TEAM, FILES …)는 읽기 쉬운 본문 폰트 */
 .en { font-family: var(--font-body); font-weight: 700; letter-spacing: .06em; font-size: 14px; }
 .svc::before { content: var(--service-name); }
+.brand .svc { white-space: nowrap; }  /* 서비스명에 띄어쓰기가 있어 상단바 로고가 두 줄로 꺾이지 않게 */
 .muted { color: var(--ink-soft); }
 .wrap { width: min(1180px, 100% - 48px); margin: 0 auto; }
 :focus-visible { outline: 3px dashed var(--ink); outline-offset: 4px; }
