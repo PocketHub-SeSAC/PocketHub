@@ -95,7 +95,8 @@ public class CommitController {
                         "authorId", commit.getUser().getUserId(),
                         "authorNickname", commit.getUser().getNickname(),
                         "createdAt", commit.getCreatedAt(),
-                        "files", commit.getFiles()
+                        "files", commit.getFiles(),
+                        "prId", commit.getPrId()
                 ), "Commit 상세 조회에 성공했습니다."
         ));
     }
