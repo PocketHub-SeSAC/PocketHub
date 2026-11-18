@@ -3,6 +3,7 @@ package com.pockethub.auth.repository;
 import com.pockethub.auth.domain.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
@@ -10,4 +11,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
     void deleteByTokenHash(String tokenHash);
+
+    void deleteByUserIdAndExpiredAtBefore(Long userId, LocalDateTime now);
 }
