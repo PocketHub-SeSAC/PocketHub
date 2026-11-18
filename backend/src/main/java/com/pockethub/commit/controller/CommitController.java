@@ -95,6 +95,8 @@ public class CommitController {
                 "createdAt", commit.getCreatedAt()
         ));
         // Map.of 는 key 와 value 전부에 null 을 허용하지 않는다.
+        response.put("author", commit.getUser());
+        // 아래의 authorId 와 authorNickname 은 오류가 날 수 있으므로 내버려둔다.
         response.put("authorId", commit.getUser().getUserId());
         response.put("authorNickname", commit.getUser().getNickname());
         response.put("files", commit.getFiles());
