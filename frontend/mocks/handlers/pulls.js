@@ -1,16 +1,18 @@
 /* [담당 5] 목업: PR·리뷰 */
 
 /* 백엔드(PrService) 규칙에 맞춘다
-   - 생성: 내 커밋 중 PR 에 안 묶인 커밋 1개 이상, Task 1개 → 바로 리뷰 대기 (리뷰어 지정은 선택, 백엔드는 아직 저장 안 함)
+   - 생성: 내 커밋 중 PR 에 안 묶인 커밋 1개 이상, Task 1개 → 바로 리뷰 대기 (리뷰어 지정 없음)
    - 승인·거부: 작성자가 아닌 팀원, 리뷰 대기일 때만. 1명이 결정하면 확정
    - 승인 → 연결 Task 를 DONE / 거부(사유 필수) → 사유는 PR 의 reply 로 남음, 커밋은 그대로
    - 수정·삭제: 작성자 본인, 리뷰 대기일 때만. 삭제하면 커밋이 풀린다
-   - 리뷰 수정·삭제는 작성자 본인만 */
+   - 리뷰 작성: PR 작성자를 뺀 팀원 누구나 (PR 상태와 상관없이), 4000자 이하
+   - 리뷰 수정·삭제는 리뷰 작성자 본인만 */
 import { nextId } from '@/mocks/db';
-import { fail, ok, created, noContent, publicUser, requireMember, isMember, str, toId, now } from '@/mocks/util';
+import { fail, ok, created, noContent, publicUser, requireMember, str, toId, now } from '@/mocks/util';
 import { commitView, commitFilesView } from './files';
 
 const STATUS = { WAITING: 'WAITING', APPROVED: 'APPROVED', CLOSED: 'CLOSED' };
+const REVIEW_MAX = 4000; // 백엔드 ValidationRules.REVIEW_COMMENT_MAX
 
 const taskRef = (db, id) => {
   const t = db.tasks.find((x) => x.id === id);
@@ -20,7 +22,8 @@ const taskRef = (db, id) => {
 export const pullSummary = (db, p) => ({
   id: p.id, title: p.title, status: p.status,
   author: publicUser(db, p.authorId),
-  reviewers: p.reviewerIds.map((id) => publicUser(db, id)).filter(Boolean),
+  // 리뷰어 지정은 없앴지만 마이페이지(공통 화면)가 아직 reviewers 를 읽어서 샘플 데이터 값만 그대로 내보낸다
+  reviewers: (p.reviewerIds || []).map((id) => publicUser(db, id)).filter(Boolean),
   task: taskRef(db, p.taskId),
   reviewCount: db.reviews.filter((r) => r.prId === p.id).length,
   createdAt: p.createdAt, decidedAt: p.decidedAt,
@@ -49,6 +52,12 @@ function requireDecider(p, user, what) {
   if (p.status !== STATUS.WAITING) fail(409, '이미 처리된 PR입니다.');
   if (p.authorId === user.id) fail(403, `본인이 작성한 PR은 ${what}할 수 없습니다.`);
 }
+function reviewContent(body) {
+  const content = str(body?.content);
+  if (!content) fail(400, '리뷰 내용을 입력해 주세요.');
+  if (content.length > REVIEW_MAX) fail(400, `리뷰는 ${REVIEW_MAX}자 이하로 입력해 주세요.`);
+  return content;
+}
 function requireEditor(p, user, what) {
   if (p.status !== STATUS.WAITING) fail(409, `이미 처리된 PR은 ${what}할 수 없어요.`);
   if (p.authorId !== user.id) fail(403, `내가 작성한 PR만 ${what}할 수 있어요.`);
@@ -60,7 +69,6 @@ export const handlers = {
     const title = str(body?.title);
     const description = str(body?.description);
     const commitIds = (Array.isArray(body?.commitIds) ? body.commitIds : []).map(toId);
-    const reviewerIds = [...new Set((Array.isArray(body?.reviewerIds) ? body.reviewerIds : []).map(toId))];
     const taskId = body?.taskId ? toId(body.taskId) : null;
     if (!title) fail(400, 'PR 제목을 입력해 주세요.');
     if (!commitIds.length) fail(400, '포함할 커밋을 1개 이상 골라 주세요.');
@@ -70,11 +78,9 @@ export const handlers = {
       if (c.authorId !== user.id) fail(400, '내가 만든 커밋만 PR에 넣을 수 있어요.');
       if (c.prId) fail(400, `커밋 "${c.message}"은 이미 다른 PR에 연결돼 있어요.`);
     });
-    if (reviewerIds.includes(user.id)) fail(400, '본인은 리뷰어로 지정할 수 없어요.');
-    if (reviewerIds.some((id) => !isMember(db, team.id, id))) fail(400, '리뷰어는 이 팀의 팀원 중에서 골라 주세요.');
     if (!taskId || !db.tasks.some((t) => t.id === taskId && t.teamId === team.id)) fail(400, '연결할 Task를 1개 골라 주세요.');
 
-    const p = { id: nextId(db, 'pull'), teamId: team.id, title, description, authorId: user.id, reviewerIds, taskId, commitIds, status: STATUS.WAITING, createdAt: now(), decidedById: null, decidedAt: null };
+    const p = { id: nextId(db, 'pull'), teamId: team.id, title, description, authorId: user.id, taskId, commitIds, status: STATUS.WAITING, createdAt: now(), decidedById: null, decidedAt: null };
     db.pulls.push(p);
     db.commits.forEach((c) => { if (commitIds.includes(c.id)) c.prId = p.id; });
     return created(pullDetail(db, p));
@@ -135,9 +141,8 @@ export const handlers = {
   'pulls.createReview': ({ db, user, params, body }) => {
     const team = requireMember(db, params.teamId, user);
     const p = findPull(db, team, params.prId);
-    const content = str(body?.content);
-    if (!content) fail(400, '리뷰 내용을 입력해 주세요.');
-    if (content.length > 1000) fail(400, '리뷰는 1000자 이하로 입력해 주세요.');
+    if (p.authorId === user.id) fail(403, '본인이 작성한 PR에는 리뷰를 남길 수 없습니다.');
+    const content = reviewContent(body);
     const r = { id: nextId(db, 'review'), prId: p.id, authorId: user.id, content, type: 'COMMENT', createdAt: now() };
     db.reviews.push(r);
     return created(reviewView(db, r));
@@ -155,9 +160,7 @@ export const handlers = {
     const r = db.reviews.find((x) => x.id === toId(params.reviewId) && x.prId === p.id);
     if (!r) fail(404, '찾을 수 없습니다.');
     if (r.authorId !== user.id) fail(403, '내가 쓴 리뷰만 수정할 수 있어요.');
-    const content = str(body?.content);
-    if (!content) fail(400, '리뷰 내용을 입력해 주세요.');
-    r.content = content;
+    r.content = reviewContent(body);
     return ok(reviewView(db, r));
   },
 

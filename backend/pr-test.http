@@ -102,6 +102,72 @@ Content-Type: application/json
 GET http://localhost:8080/api/v1/teams/1/pulls
 X-User-Id: 999
 
+### 리뷰 작성 - PR 작성자 본인 (403), 리뷰어 지정 없이 작성자를 뺀 팀원 누구나 가능
+POST http://localhost:8080/api/v1/teams/1/pulls/1/reviews
+X-User-Id: 1
+Content-Type: application/json
+
+{
+  "content": "셀프 리뷰"
+}
+
+### 리뷰 작성 - 내용 없이 (400)
+POST http://localhost:8080/api/v1/teams/1/pulls/1/reviews
+X-User-Id: 2
+Content-Type: application/json
+
+{
+  "content": " "
+}
+
+### 리뷰 작성 (201), 응답의 reviewId 를 아래 수정·삭제에 사용
+POST http://localhost:8080/api/v1/teams/1/pulls/1/reviews
+X-User-Id: 2
+Content-Type: application/json
+
+{
+  "content": "변수 이름이 명확해서 읽기 좋아요."
+}
+
+### 리뷰 목록 - 작성순 (200), PR 목록의 reviewCount 도 함께 늘어남
+GET http://localhost:8080/api/v1/teams/1/pulls/1/reviews
+X-User-Id: 1
+
+### 리뷰 목록 - 팀원이 아닌 사람 (403)
+GET http://localhost:8080/api/v1/teams/1/pulls/1/reviews
+X-User-Id: 999
+
+### 리뷰 수정 - 작성자가 아닌 사람 (403)
+PATCH http://localhost:8080/api/v1/teams/1/pulls/1/reviews/1
+X-User-Id: 1
+Content-Type: application/json
+
+{
+  "content": "남의 리뷰 고치기"
+}
+
+### 리뷰 수정 - 작성자 본인 (200)
+PATCH http://localhost:8080/api/v1/teams/1/pulls/1/reviews/1
+X-User-Id: 2
+Content-Type: application/json
+
+{
+  "content": "변수 이름이 명확해서 읽기 좋아요. 테스트도 추가하면 좋겠어요."
+}
+
+### 리뷰 수정 - 다른 PR 경로로 같은 리뷰 번호 (404)
+PATCH http://localhost:8080/api/v1/teams/1/pulls/2/reviews/1
+X-User-Id: 2
+Content-Type: application/json
+
+{
+  "content": "경로가 다른 PR"
+}
+
+### 리뷰 삭제 - 작성자 본인 (204)
+DELETE http://localhost:8080/api/v1/teams/1/pulls/1/reviews/1
+X-User-Id: 2
+
 ### PR 삭제 - 작성자가 아닌 사람 (403)
 DELETE http://localhost:8080/api/v1/teams/1/pulls/1
 X-User-Id: 2

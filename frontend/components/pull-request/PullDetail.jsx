@@ -4,10 +4,10 @@
 /* - 승인·거부: 작성자가 아닌 팀원, 리뷰 대기일 때만 (리뷰어 지정은 백엔드에 아직 없음). 거부는 사유 필수(PR 의 reply 로 남음)
    - 수정·삭제: 작성자 본인, 리뷰 대기일 때만
    - 승인 → 연결 Task DONE
-   - 리뷰(의견)는 팀원 누구나 작성, 내가 쓴 리뷰만 수정·삭제. 백엔드 리뷰 API 가 생기기 전까지 실서버에선 숨김(REVIEWS_ENABLED) */
+   - 리뷰(의견): 리뷰어 지정 없이 PR 작성자를 뺀 팀원 누구나 작성, 작성자는 읽기만. 내가 쓴 리뷰만 수정·삭제 */
 import { useState } from 'react';
 import Link from 'next/link';
-import { getPull, getReviews, createReview, updateReview, deleteReview, approvePull, rejectPull, canDecidePull, canEditPull, REVIEWS_ENABLED } from '@/services/pulls';
+import { getPull, getReviews, createReview, updateReview, deleteReview, approvePull, rejectPull, canDecidePull, canEditPull, canReviewPull, REVIEWS_ENABLED } from '@/services/pulls';
 import useAsync from '@/hooks/useAsync';
 import ListState from '@/components/common/ListState';
 import Icon from '@/components/common/Icon';
@@ -61,6 +61,7 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
   const isMine = p.author?.id === me.id;
   const canDecide = canDecidePull(p, me);
   const canEdit = canEditPull(p, me);
+  const canReview = canReviewPull(p, me);
   const [label, badgeCls, stCls] = STATUS[p.status];
 
   return (
@@ -123,7 +124,7 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
           {REVIEWS_ENABLED && (
             <>
               <ListState loading={reviews.loading} error={reviews.error} onRetry={() => reviews.reload()}
-                empty={reviews.data && !reviews.data.length} emptyText='아직 리뷰가 없어요. 첫 의견을 남겨 보세요.'>
+                empty={reviews.data && !reviews.data.length} emptyText={canReview ? '아직 리뷰가 없어요. 첫 의견을 남겨 보세요.' : '아직 리뷰가 없어요.'}>
                 <div className='bubbles' id='bubbles'>
                   {(reviews.data || []).map((r) => (
                     <ReviewItem key={r.id} r={r} mine={r.author?.id === me.id}
@@ -132,6 +133,7 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
                   ))}
                 </div>
               </ListState>
+              {canReview ? (
               <form className='write' onSubmit={handleReviewSubmit} noValidate style={{ marginTop: 14 }}>
                 <div>
                   <textarea className='input' id='review-text' rows={2} placeholder='리뷰 의견을 입력하세요' aria-label='리뷰 입력' value={text}
@@ -140,6 +142,9 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
                 </div>
                 <button className='btn' type='submit' disabled={busy}><Icon name='review' size={12} />리뷰 등록</button>
               </form>
+              ) : (
+                <p className='sub-hint' style={{ marginTop: 14 }}>내가 만든 PR이라 리뷰는 다른 팀원이 남겨요.</p>
+              )}
             </>
           )}
 

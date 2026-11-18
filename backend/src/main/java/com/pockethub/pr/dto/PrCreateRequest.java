@@ -5,7 +5,7 @@ import lombok.Setter;
 
 import java.util.List;
 
-// TODO : 리뷰어(reviewerIds)는 저장할 테이블이 정해지면 추가
+// 리뷰어는 지정하지 않는다: PR 작성자를 뺀 팀원 누구나 리뷰 가능 (프론트가 reviewerIds 를 보내도 무시)
 @Setter
 @Getter
 public class PrCreateRequest {
