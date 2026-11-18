@@ -110,7 +110,7 @@ export function normalizeCommit(c) {
     createdAt: pick(c, 'createdAt'),
     prId: pick(c, 'prId', 'pullId', 'pullRequestId') ?? null,
     files: pick(c, 'files') ?? [],
-    fileCount: c.files.length,
+    fileCount: c.files?.length || 0,
   };
 }
 export const normalizeCommits = (x) => list(x, normalizeCommit);
