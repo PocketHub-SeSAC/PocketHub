@@ -5,6 +5,7 @@
    - 승인·거부: 작성자가 아닌 팀원, 리뷰 대기일 때만. 1명이 결정하면 확정
    - 승인 → 연결 Task 를 DONE / 거부(사유 필수) → 사유는 PR 의 reply 로 남음, 커밋은 그대로
    - 수정·삭제: 작성자 본인, 리뷰 대기일 때만. 삭제하면 커밋이 풀린다
+   - 연결 Task 변경: 수정과 같은 조건. Task 가 삭제돼 연결이 끊긴 PR 을 다시 연결할 때 쓴다
    - 리뷰 작성: PR 작성자를 뺀 팀원 누구나, 4000자 이하. 처리된(승인·거부) PR 에는 작성·수정·삭제 불가
    - 리뷰 수정·삭제는 리뷰 작성자 본인만 */
 import { nextId } from '@/mocks/db';
@@ -125,6 +126,18 @@ export const handlers = {
     const title = str(body?.title);
     if (!title) fail(400, 'PR 제목을 입력해 주세요.');
     p.title = title; p.description = str(body?.description);
+    return ok(pullDetail(db, p));
+  },
+
+  // 연결 Task 변경: 수정과 같은 조건(작성자 본인 + 리뷰 대기), 같은 팀 Task 만
+  'pulls.changeTask': ({ db, user, params, body }) => {
+    const team = requireMember(db, params.teamId, user);
+    const p = findPull(db, team, params.prId);
+    requireEditor(p, user, '수정');
+    const taskId = body?.taskId ? toId(body.taskId) : null;
+    if (!taskId) fail(400, '연결할 Task를 골라 주세요.');
+    if (!db.tasks.some((t) => t.id === taskId && t.teamId === team.id)) fail(404, 'Task를 찾을 수 없습니다.');
+    p.taskId = taskId;
     return ok(pullDetail(db, p));
   },
 

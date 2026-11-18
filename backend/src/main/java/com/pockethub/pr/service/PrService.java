@@ -14,6 +14,7 @@ import com.pockethub.pr.dto.PrDetailResponse;
 import com.pockethub.pr.dto.PrMemberResponse;
 import com.pockethub.pr.dto.PrRejectRequest;
 import com.pockethub.pr.dto.PrSummaryResponse;
+import com.pockethub.pr.dto.PrTaskRequest;
 import com.pockethub.pr.dto.PrTaskResponse;
 import com.pockethub.pr.dto.PrUpdateRequest;
 import com.pockethub.pr.repository.PrRepository;
@@ -91,6 +92,19 @@ public class PrService {
     public PrDetailResponse updatePr(long userId, long repoId, long prId, PrUpdateRequest request) {
         Pr pr = findEditablePr(userId, repoId, prId, "수정");
         pr.update(validateTitle(request.getTitle()), validateText(request.getDescription()));
+        return toDetail(pr, prRepository.findCommitsByPrId(prId));
+    }
+
+    // 연결 Task 변경: Task 가 삭제돼 연결이 끊긴 PR 을 다시 연결하거나 다른 Task 로 바꾼다
+    // 수정과 같은 조건(작성자 본인 + OPEN), 같은 팀 Task 만
+    @Transactional
+    public PrDetailResponse changeTask(long userId, long repoId, long prId, PrTaskRequest request) {
+        Pr pr = findEditablePr(userId, repoId, prId, "수정");
+        if (request.getTaskId() == null) {
+            throw new IllegalArgumentException("연결할 Task를 골라 주세요.");
+        }
+        validateTask(repoId, request.getTaskId());
+        pr.changeTask(request.getTaskId());
         return toDetail(pr, prRepository.findCommitsByPrId(prId));
     }
 

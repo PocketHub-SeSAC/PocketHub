@@ -11,6 +11,7 @@ export const PULLS_API = {
   detail:       { key: 'pulls.detail',       method: 'GET',    path: '/api/v1/teams/{teamId}/pulls/{prId}' },                         // API-031
   update:       { key: 'pulls.update',       method: 'PATCH',  path: '/api/v1/teams/{teamId}/pulls/{prId}' },                         // PR 수정
   remove:       { key: 'pulls.remove',       method: 'DELETE', path: '/api/v1/teams/{teamId}/pulls/{prId}' },                         // PR 삭제
+  changeTask:   { key: 'pulls.changeTask',   method: 'PATCH',  path: '/api/v1/teams/{teamId}/pulls/{prId}/task' },                    // PR 연결 Task 변경
   approve:      { key: 'pulls.approve',      method: 'POST',   path: '/api/v1/teams/{teamId}/pulls/{prId}/approve' },                 // API-032
   reject:       { key: 'pulls.reject',       method: 'POST',   path: '/api/v1/teams/{teamId}/pulls/{prId}/reject' },                  // API-033
   createReview: { key: 'pulls.createReview', method: 'POST',   path: '/api/v1/teams/{teamId}/pulls/{prId}/reviews' },                 // API-034
@@ -41,6 +42,10 @@ export const getPull = (teamId, prId) =>
 /** 작성자 본인, 리뷰 대기일 때만 제목·설명 수정 */
 export const updatePull = (teamId, prId, { title, description }) =>
   request(PULLS_API.update, { params: { teamId, prId }, body: { title, description } }).then(normalizePull);
+
+/** 작성자 본인, 리뷰 대기일 때만 연결 Task 변경 (Task 가 삭제돼 연결이 끊겼을 때 다시 연결) */
+export const changePullTask = (teamId, prId, { taskId }) =>
+  request(PULLS_API.changeTask, { params: { teamId, prId }, body: { taskId } }).then(normalizePull);
 
 /** 작성자 본인, 리뷰 대기일 때만. 묶였던 커밋은 다시 PR 에 넣을 수 있게 풀린다 */
 export const deletePull = (teamId, prId) =>
