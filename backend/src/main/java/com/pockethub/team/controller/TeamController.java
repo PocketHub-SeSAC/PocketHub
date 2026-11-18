@@ -6,6 +6,7 @@ import com.pockethub.team.dto.*;
 import com.pockethub.team.service.TeamService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -22,39 +23,39 @@ public class TeamController {
     // 팀생성
     @PostMapping
     public ResponseEntity<ResponseDTO> createTeam(
-            @RequestHeader("X-User-Id") Long loginUserId,
+            @AuthenticationPrincipal Long loginUserId,
             @RequestBody CreateTeamRequest request) {
         TeamResponse response = teamService.createTeam(loginUserId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ResponseDTO(HttpStatus.CREATED, Map.of("team", response), "팀이 생성되었습니다."));
     }
 
-    //  전체 팀 목록 조회
+    // 내가 속한 팀 목록 조회
     @GetMapping
-    public ResponseEntity<ResponseDTO> getTeams() {
-        return ResponseEntity.ok(new ResponseDTO(Map.of("teams", teamService.getTeams()), "팀 목록 조회 성공"));
+    public ResponseEntity<ResponseDTO> getTeams(@AuthenticationPrincipal Long loginUserId) {
+        return ResponseEntity.ok(new ResponseDTO(Map.of("teams", teamService.getTeams(loginUserId)), "팀 목록 조회 성공"));
     }
 
-    // oo번 팀 상세 조회
+    // 팀 상세 조회
     @GetMapping("/{teamId}")
     public ResponseEntity<ResponseDTO> getTeam(@PathVariable Long teamId) {
         return ResponseEntity.ok(new ResponseDTO(Map.of("team", teamService.getTeam(teamId)),  "팀 상세 조회 성공"));
     }
 
-    // oo 팀 수정
+    // 팀 수정
     @PatchMapping("/{teamId}")
     public ResponseEntity<ResponseDTO> updateTeam(
-            @RequestHeader("X-User-Id") Long loginUserId,
+            @AuthenticationPrincipal Long loginUserId,
             @PathVariable Long teamId,
             @RequestBody UpdateTeamRequest request) {
         TeamResponse response = teamService.updateTeam(loginUserId, teamId, request);
         return ResponseEntity.ok(new ResponseDTO(Map.of("team", response), "팀 정보가 수정되었습니다."));
     }
 
-    // oo 팀 삭제
+    // 팀 삭제
     @DeleteMapping("/{teamId}")
     public ResponseEntity<ResponseDTO> deleteTeam(
-            @RequestHeader("X-User-Id") Long loginUserId,
+            @AuthenticationPrincipal Long loginUserId,
             @PathVariable Long teamId) {
         teamService.deleteTeam(loginUserId, teamId);
         return ResponseEntity.ok(new ResponseDTO(HttpStatus.OK, "팀이 삭제되었습니다."));
@@ -70,17 +71,17 @@ public class TeamController {
 
     @PostMapping("/{teamId}/members")
     public ResponseEntity<ResponseDTO> addMember(
-            @RequestHeader("X-User-Id") Long loginUserId,
+            @AuthenticationPrincipal Long loginUserId,
             @PathVariable Long teamId,
             @RequestBody AddMemberRequest request) {
-        teamService.addMember(loginUserId, teamId, request);
+        TeamMemberResponse member = teamService.addMember(loginUserId, teamId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ResponseDTO(HttpStatus.CREATED, "팀원이 추가되었습니다."));
+                .body(new ResponseDTO(HttpStatus.CREATED, Map.of("member", member), "팀원이 추가되었습니다."));
     }
 
     @DeleteMapping("/{teamId}/members/{userId}")
     public ResponseEntity<ResponseDTO> removeMember(
-            @RequestHeader("X-User-Id") Long loginUserId,
+            @AuthenticationPrincipal Long loginUserId,
             @PathVariable Long teamId,
             @PathVariable Long userId) {
         teamService.removeMember(loginUserId, teamId, userId);
