@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface FileRepository extends JpaRepository<File, Long> {
-    File findFirstByOriginalNameAndIsLatestOrderByFileIdDesc(String originalName, boolean isLatest);
+    File findFirstByOriginalNameAndRepoIdAndIsLatestOrderByFileIdDesc(String originalName, long repoId, boolean isLatest);
 
     File findByFileIdAndRepoId(long fileId, long repoId);
 
