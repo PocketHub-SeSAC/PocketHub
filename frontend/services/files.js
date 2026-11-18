@@ -15,9 +15,11 @@ export const FILES_API = {
 };
 
 /** 파일 1개 = 커밋 1개. multipart: files(백엔드는 여러 개를 받지만 화면은 1개만 보냄) + commitMessage(필수) */
-export function uploadFile(teamId, { file, message }) {
+export function uploadFile(teamId, { files = [], message }) {
   const form = new FormData();
-  form.append('files', file);
+  files.forEach(file => {
+    form.append('files', file);
+  });
   form.append('commitMessage', message);
   return request(FILES_API.upload, { params: { teamId }, body: form }).then(normalizeCommit);
 }
