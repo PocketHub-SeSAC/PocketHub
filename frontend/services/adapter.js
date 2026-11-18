@@ -109,9 +109,9 @@ export function normalizeCommit(c) {
     hash: String(pick(c, 'hash', 'shortId', 'commitHash') || pick(c, 'id', 'commitId') || ''),
     message: pick(c, 'message', 'commitMessage') || '',
     type: COMMIT_TYPES[String(pick(c, 'type', 'kind') || 'UPLOAD').toUpperCase()] || 'UPLOAD',
-    // 커밋 상세는 작성자를 authorId·authorNickname 으로 평평하게 보낸다
+    // 커밋 상세는 작성자를 authorId·authorNickname 으로, PR 상세의 커밋은 userId 로 평평하게 보낸다
     author: normalizeMember(pick(c, 'author', 'user', 'committer'))
-      ?? (pick(c, 'authorId') ? normalizeMember({ id: pick(c, 'authorId'), nickname: pick(c, 'authorNickname') }) : null),
+      ?? (pick(c, 'authorId', 'userId') ? normalizeMember({ id: pick(c, 'authorId', 'userId'), nickname: pick(c, 'authorNickname') }) : null),
     createdAt: pick(c, 'createdAt'),
     prId: pick(c, 'prId', 'pullId', 'pullRequestId') ?? null,
     fileCount: pick(c, 'fileCount'),
@@ -170,6 +170,7 @@ export function normalizePull(p) {
     reviewCount: Number(pick(p, 'reviewCount') || 0),
     decidedBy: normalizeMember(pick(p, 'decidedBy')),
     decidedAt: pick(p, 'decidedAt'),
+    reply: pick(p, 'reply') || '', // 거부 사유 (백엔드 pr.reply)
     createdAt: pick(p, 'createdAt'),
   };
 }

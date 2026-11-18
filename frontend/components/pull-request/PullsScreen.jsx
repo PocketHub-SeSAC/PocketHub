@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { getPulls } from '@/services/pulls';
+import { getPulls, canDecidePull } from '@/services/pulls';
 import { useTeam } from '@/components/team/TeamShell';
 import useAsync from '@/hooks/useAsync';
 import useQuery from '@/hooks/useQuery';
@@ -22,7 +22,7 @@ const TABS = ['waiting', 'approved', 'closed'];
 const EMPTY = { waiting: '리뷰를 기다리는 PR이 없어요.', approved: '아직 승인된 PR이 없어요.', closed: '종료된 PR이 없어요.' };
 
 export default function PullsScreen() {
-  const { teamId, me, members } = useTeam();
+  const { teamId, me } = useTeam();
   const { prId } = useParams();
   const router = useRouter();
   const [q, setQuery] = useQuery();
@@ -47,13 +47,13 @@ export default function PullsScreen() {
   }, [owner, raw, prId, lists.data, setQuery]);
 
   const items = lists.data ? lists.data[status] : [];
-  // 탭에 보이는 숫자는 하나만: 내가 리뷰할 리뷰 대기 수 (팀 메뉴 PR 알림 배지와 같은 값, 0이면 숨김)
-  const myReview = lists.data ? lists.data.waiting.filter((p) => p.reviewers.some((r) => r.id === me.id)).length : 0;
+  // 탭에 보이는 숫자는 하나만: 내가 승인·거부할 수 있는 리뷰 대기 수 = 내가 쓰지 않은 대기 PR (팀 메뉴 PR 알림 배지와 같은 값, 0이면 숨김)
+  const myReview = lists.data ? lists.data.waiting.filter((p) => canDecidePull(p, me)).length : 0;
 
   return (
     <>
       <div className='pagehead'>
-        <div><h2>PR</h2><p className='muted'>왼쪽에서 PR을 고르면 오른쪽에 내용이 보여요. 리뷰는 누구나, 승인·거부는 지정된 리뷰어만 할 수 있어요.</p></div>
+        <div><h2>PR</h2><p className='muted'>왼쪽에서 PR을 고르면 오른쪽에 내용이 보여요. 승인·거부는 작성자가 아닌 팀원이 할 수 있어요.</p></div>
         <button className='btn btn-ink' type='button' onClick={() => setQuery({ modal: 'new-pr' })}><Icon name='plus' />새 PR</button>
       </div>
 
@@ -76,8 +76,7 @@ export default function PullsScreen() {
                   <h3>{p.title}</h3>
                   <div className='meta'>
                     <Who user={p.author} me={p.author?.id === me.id} />
-                    <span className='muted'>리뷰어 {p.reviewers.map((r) => r.nickname).join(', ')}</span>
-                    {p.reviewers.some((r) => r.id === me.id) && p.status === 'waiting' && <span className='badge pri'>내 리뷰 차례</span>}
+                    {canDecidePull(p, me) && <span className='badge pri'>내 리뷰 차례</span>}
                   </div>
                   <div className='meta'>
                     {p.task && <span className='badge'><Icon name='task' size={10} />{p.task.title}</span>}
@@ -93,7 +92,8 @@ export default function PullsScreen() {
           {prId ? (
             <PullDetail key={prId} teamId={teamId} prId={prId} me={me}
               rejectOpen={q.get('modal') === 'reject'} setRejectOpen={(o) => setQuery({ modal: o ? 'reject' : null })}
-              onChanged={() => { lists.reload(true); noti.refresh(); }} />
+              onChanged={() => { lists.reload(true); noti.refresh(); }}
+              onDeleted={() => { lists.reload(true); noti.refresh(); router.push(`${base}?status=waiting`); }} />
           ) : (
             <div className='state-box'><Icon name='pr' size={27} /><span className='muted'>왼쪽 목록에서 PR을 고르면 내용이 보여요.</span></div>
           )}
@@ -101,7 +101,7 @@ export default function PullsScreen() {
       </div>
 
       {q.get('modal') === 'new-pr' && (
-        <NewPullModal teamId={teamId} me={me} members={members} onClose={() => setQuery({ modal: null })}
+        <NewPullModal teamId={teamId} me={me} onClose={() => setQuery({ modal: null })}
           onCreated={(pr) => { lists.reload(true); noti.refresh(); router.push(`${base}/${pr.id}?status=waiting`); }} />
       )}
     </>

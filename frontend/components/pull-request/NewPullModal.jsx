@@ -2,8 +2,8 @@
 /* [담당 5] PR 생성 모달 (?modal=new-pr) */
 
 /* - 커밋: 내 커밋 중 아직 PR 에 연결되지 않은 것만, 1개 이상
-   - 리뷰어: 본인을 뺀 팀원 중 1명 이상
    - Task: 1개 연결
+   - 리뷰어 지정은 백엔드에 아직 없다 → 작성자가 아닌 팀원 누구나 승인·거부 (TODO : reviewerIds 저장이 생기면 다시 추가)
    만들면 바로 "리뷰 대기" */
 import { useState } from 'react';
 import { createPull } from '@/services/pulls';
@@ -15,7 +15,6 @@ import Field from '@/components/common/Field';
 import FieldError from '@/components/common/FieldError';
 import ListState from '@/components/common/ListState';
 import Icon from '@/components/common/Icon';
-import Who from '@/components/common/Who';
 import { useToast } from '@/components/common/Toast';
 import { formatDate } from '@/utils/format';
 
@@ -29,17 +28,16 @@ function CheckItem({ checked, onToggle, children }) {
   );
 }
 
-export default function NewPullModal({ teamId, me, members, onClose, onCreated }) {
+export default function NewPullModal({ teamId, me, onClose, onCreated }) {
   const toast = useToast();
   // usePr: PR 에 안 묶인 커밋만 받는다. 내 커밋 거르기는 아래 myFree 에서 그대로 한다
   const commits = useAsync(() => getCommits(teamId, { size: 100, usePr: true }), [teamId]);
   const tasks = useAsync(() => getTasks(teamId), [teamId]);
-  const [v, setV] = useState({ title: '', description: '', commitIds: [], reviewerIds: [], taskId: '' });
+  const [v, setV] = useState({ title: '', description: '', commitIds: [], taskId: '' });
   const [errs, setErrs] = useState({});
   const [serverErr, setServerErr] = useState('');
   const [busy, setBusy] = useState(false);
   const myFree = (commits.data || []).filter((c) => c.author?.id === me.id && !c.prId);
-  const reviewers = members.filter((m) => m.id !== me.id);
   const handleToggle = (key, id) => setV((s) => ({ ...s, [key]: s[key].includes(id) ? s[key].filter((x) => x !== id) : [...s[key], id] }));
 
   const handleSubmit = async (e) => {
@@ -47,15 +45,14 @@ export default function NewPullModal({ teamId, me, members, onClose, onCreated }
     const fe = {
       title: v.title.trim() ? '' : 'PR 제목을 입력해 주세요.',
       commits: v.commitIds.length ? '' : '포함할 커밋을 1개 이상 골라 주세요.',
-      reviewers: v.reviewerIds.length ? '' : '리뷰어를 1명 이상 골라 주세요.',
       task: v.taskId ? '' : '연결할 Task를 골라 주세요.',
     };
     setErrs(fe); setServerErr('');
     if (Object.values(fe).some(Boolean)) return;
     setBusy(true);
     try {
-      const pr = await createPull(teamId, { title: v.title.trim(), description: v.description.trim(), commitIds: v.commitIds, reviewerIds: v.reviewerIds, taskId: Number(v.taskId) });
-      toast(`PR #${pr.id}을(를) 만들었어요. 리뷰어에게 리뷰를 요청했어요.`);
+      const pr = await createPull(teamId, { title: v.title.trim(), description: v.description.trim(), commitIds: v.commitIds, taskId: Number(v.taskId) });
+      toast(`PR #${pr.id}을(를) 만들었어요. 팀원에게 리뷰를 요청했어요.`);
       onCreated(pr);
     } catch (err) { setServerErr(err.message); setBusy(false); }
   };
@@ -83,26 +80,13 @@ export default function NewPullModal({ teamId, me, members, onClose, onCreated }
           <FieldError>{errs.commits}</FieldError>
         </div>
 
-        <div className='field'>
-          <span className='lbl'>리뷰어 <span className='req'>1명 이상</span></span>
-          <div className='pick' role='group' aria-label='리뷰어'>
-            {reviewers.map((m) => (
-              <CheckItem key={m.id} checked={v.reviewerIds.includes(m.id)} onToggle={() => handleToggle('reviewerIds', m.id)}>
-                <Who user={m} /><span className='grow size'>{m.email}</span>
-              </CheckItem>
-            ))}
-            {!reviewers.length && <p className='empty-note'>본인 말고 다른 팀원이 없어요. 팀원을 먼저 추가해 주세요.</p>}
-          </div>
-          <FieldError>{errs.reviewers}</FieldError>
-        </div>
-
         <Field id='pr-task' label='연결할 Task' required as='select' value={v.taskId} error={errs.task} onChange={(e) => setV({ ...v, taskId: e.target.value })}>
           <option value=''>{tasks.loading ? '불러오는 중…' : 'Task를 골라 주세요'}</option>
           {(tasks.data || []).map((t) => <option key={t.id} value={String(t.id)}>[{t.status}] {t.title}</option>)}
         </Field>
 
         <div className='foot'>
-          <span className='hint muted'>만들면 바로 "리뷰 대기"가 돼요.</span>
+          <span className='hint muted'>만들면 바로 "리뷰 대기"가 되고, 다른 팀원이 승인·거부할 수 있어요.</span>
           <button className='btn' type='button' onClick={onClose}>취소</button>
           <button className='btn btn-ink' type='submit' disabled={busy}>{busy ? '만드는 중…' : 'PR 만들기'}</button>
         </div>
