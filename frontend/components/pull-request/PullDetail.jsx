@@ -3,7 +3,8 @@
 
 /* - 승인·거부: 작성자가 아닌 팀원, 리뷰 대기일 때만 (리뷰어 지정은 백엔드에 아직 없음). 거부는 사유 필수(PR 의 reply 로 남음)
    - 수정·삭제: 작성자 본인, 리뷰 대기일 때만
-   - 승인 → 연결 Task DONE
+   - 승인 → 연결 Task DONE (Task 가 삭제됐으면 PR 만 승인)
+   - 연결 Task 가 삭제되면 경고를 보이고, 작성자는 [Task 다시 연결]로 같은 팀 Task 를 다시 고른다
    - 리뷰(의견): 리뷰어 지정 없이 PR 작성자를 뺀 팀원 누구나 작성, 작성자는 읽기만. 내가 쓴 리뷰만 수정·삭제.
      승인·거부로 처리된 PR 은 리뷰 작성·수정·삭제 불가(읽기만) */
 import { useState } from 'react';
@@ -16,7 +17,7 @@ import Who, { fillProfile } from '@/components/common/Who';
 import { useTeam } from '@/components/team/TeamShell';
 import ReviewItem from '@/components/review/ReviewItem';
 import RejectModal from './RejectModal';
-import { EditPullModal, DeletePullModal } from './PullEditModals';
+import { EditPullModal, DeletePullModal, TaskPullModal } from './PullEditModals';
 import { useToast } from '@/components/common/Toast';
 import { formatDate, formatSize } from '@/utils/format';
 
@@ -34,6 +35,7 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
   const [busy, setBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
 
   const refresh = () => { pr.reload(true); reviews.reload(true); onChanged(); };
   const handleReviewSubmit = async (e) => {
@@ -45,7 +47,12 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
   };
   const handleApprove = async () => {
     setBusy(true);
-    try { await approvePull(teamId, prId); toast('PR을 승인했어요. 연결된 Task가 DONE이 됐어요.'); refresh(); }
+    try {
+      const done = await approvePull(teamId, prId);
+      // Task 가 삭제된 PR 은 PR 만 승인되고 Task 는 바뀌지 않는다
+      toast(done.task ? 'PR을 승인했어요. 연결된 Task가 DONE이 됐어요.' : 'PR을 승인했어요.');
+      refresh();
+    }
     catch (err) { toast(err.message); } finally { setBusy(false); }
   };
   const handleReject = async (reason) => {
@@ -84,12 +91,47 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
         </div>
       </div>
       <div className='pr-body'>
+        {/* 거부 사유는 상세 맨 위에 강조 (공통 CSS 를 건드리지 않으려고 .alert + 인라인 배치만 조정) */}
+        {p.status === 'closed' && p.reply && (
+          <div className='alert' role='note' aria-label='거부 사유' style={{ alignItems: 'flex-start' }}>
+            <Icon name='x' />
+            <div style={{ display: 'grid', gap: 6, minWidth: 0 }}>
+              <span style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <span>거부 사유</span>
+                <Who user={who(p.decidedBy)} me={p.decidedBy?.id === me.id} />
+                {p.decidedAt && <span style={{ fontWeight: 400 }}>{formatDate(p.decidedAt)}</span>}
+              </span>
+              <p style={{ margin: 0, fontWeight: 400, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{p.reply}</p>
+              {isMine && <span style={{ fontWeight: 400 }}>사유를 반영해 새 PR을 올려 주세요.</span>}
+            </div>
+          </div>
+        )}
+        {!p.task && p.status === 'waiting' && (
+          <div className='alert' role='status'>
+            <Icon name='task' />
+            {canEdit
+              ? '연결된 Task가 삭제됐어요. 아래 [Task 다시 연결]로 Task를 골라 주세요.'
+              : '연결된 Task가 삭제됐어요. 지금 승인하면 PR만 승인되고 Task 상태는 바뀌지 않아요. 작성자가 Task를 다시 연결할 수 있어요.'}
+          </div>
+        )}
         <section className='sec'>
           <div className='sec-label'><Icon name='file' />PR 내용</div>
           <dl className='rows'>
             <dt>설명</dt><dd><div className='desc'>{p.description || <span className='muted'>설명이 없어요.</span>}</div></dd>
             <dt>연결된 Task</dt>
-            <dd>{p.task ? <><Link className='chip' href={`/teams/${teamId}/tasks?task=${p.task.id}`}><Icon name='task' size={12} />{p.task.title}</Link> <span className='badge'>{p.task.status}</span></> : <span className='muted'>연결된 Task가 삭제됐어요.</span>}</dd>
+            <dd>
+              {p.task ? (
+                <>
+                  <Link className='chip' href={`/teams/${teamId}/tasks?task=${p.task.id}`}><Icon name='task' size={12} />{p.task.title}</Link> <span className='badge'>{p.task.status}</span>
+                  {canEdit && <> <button className='btn btn-sm' type='button' onClick={() => setTaskOpen(true)}>변경</button></>}
+                </>
+              ) : (
+                <>
+                  <span className='muted'>연결된 Task가 삭제됐어요.</span>
+                  {canEdit && <> <button className='btn btn-sm btn-ink' type='button' onClick={() => setTaskOpen(true)}><Icon name='task' size={12} />Task 다시 연결</button></>}
+                </>
+              )}
+            </dd>
             <dt>포함된 Commit</dt>
             <dd>
               <ul className='items'>
@@ -167,12 +209,13 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
           </div>
           {p.status === 'approved' && p.task && <p className='note-line'><Icon name='task' size={12} />연결된 Task({p.task.title})가 DONE으로 옮겨졌어요.</p>}
           {p.status === 'closed' && p.reply && (
-            <div className='note-line' role='note'><Icon name='review' size={12} /><span><b>거부 사유</b> {p.reply}</span></div>
+            <p className='note-line'><Icon name='review' size={12} />거부 사유는 PR 상세 맨 위에서 볼 수 있어요.</p>
           )}
         </section>
       </div>
       {rejectOpen && canDecide && <RejectModal onClose={() => setRejectOpen(false)} onSubmit={handleReject} />}
       {editOpen && canEdit && <EditPullModal teamId={teamId} pr={p} onClose={() => setEditOpen(false)} onSaved={() => { setEditOpen(false); refresh(); }} />}
+      {taskOpen && canEdit && <TaskPullModal teamId={teamId} pr={p} onClose={() => setTaskOpen(false)} onSaved={() => { setTaskOpen(false); refresh(); }} />}
       {deleteOpen && canEdit && <DeletePullModal teamId={teamId} pr={p} onClose={() => setDeleteOpen(false)} onDeleted={() => { setDeleteOpen(false); onDeleted(); }} />}
     </article>
   );
