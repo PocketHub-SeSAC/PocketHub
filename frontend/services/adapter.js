@@ -72,19 +72,22 @@ export function normalizeTeamMember(m) {
 }
 export const normalizeTeamMembers = (x) => list(x, normalizeTeamMember);
 
+/* 서버는 파일 크기를 KB(소수)로 보낸다 → 화면의 formatSize 가 바이트를 전제로 하므로 바이트로 바꿔 둔다 */
+const kbToBytes = (kb) => Math.round((Number(kb) || 0) * 1024);
+
 export function normalizeFile(f) {
+  const uploaderId = pick(f, 'uploaderId');
+  const uploaderNickname = pick(f, 'uploaderNickname');
   return {
     id: pick(f, 'id', 'fileId'),
     name: pick(f, 'name', 'fileName', 'originalName') || '',
-    size: Number(pick(f, 'size', 'fileSize') || 0),
+    size: kbToBytes(pick(f, 'size', 'fileSize')),
     version: Number(pick(f, 'version', 'latestVersion') || 1),
     type: pick(f, 'state'),
     // uploader: normalizeMember(pick(f, 'uploader', 'uploadedBy', 'member')),
     // TODO : 아이콘 정보 때문에 백 쪽을 바꿔야할 것 같긴 함
-    uploader: {
-      id : pick(f, 'uploaderId'),
-      nickname : pick(f, 'uploaderNickname')
-    },
+    // 업로더가 없으면 서버는 uploaderId 0, uploaderNickname null 을 보낸다 → null 로 둬서 '?' 아이콘을 그리지 않게
+    uploader: uploaderId && uploaderNickname ? { id: uploaderId, nickname: uploaderNickname } : null,
     uploadedAt: pick(f, 'uploadedAt', 'updatedAt', 'createdAt'),
     commitId: pick(f, 'commitId'),
     versions : []
@@ -106,7 +109,9 @@ export function normalizeCommit(c) {
     hash: String(pick(c, 'hash', 'shortId', 'commitHash') || pick(c, 'id', 'commitId') || ''),
     message: pick(c, 'message', 'commitMessage') || '',
     type: COMMIT_TYPES[String(pick(c, 'type', 'kind') || 'UPLOAD').toUpperCase()] || 'UPLOAD',
-    author: normalizeMember(pick(c, 'author', 'user', 'committer')),
+    // 커밋 상세는 작성자를 authorId·authorNickname 으로 평평하게 보낸다
+    author: normalizeMember(pick(c, 'author', 'user', 'committer'))
+      ?? (pick(c, 'authorId') ? normalizeMember({ id: pick(c, 'authorId'), nickname: pick(c, 'authorNickname') }) : null),
     createdAt: pick(c, 'createdAt'),
     prId: pick(c, 'prId', 'pullId', 'pullRequestId') ?? null,
     fileCount: pick(c, 'fileCount'),
@@ -119,7 +124,7 @@ export function normalizeCommitFile(f) {
   return {
     fileId: pick(f, 'fileId', 'id'),
     name: pick(f, 'name', 'fileName') || '',
-    size: Number(pick(f, 'size', 'fileSize') || 0),
+    size: kbToBytes(pick(f, 'size', 'fileSize')),
     version: Number(pick(f, 'version') || 1),
     action: ACTIONS[String(pick(f, 'action', 'changeType') || 'ADD').toUpperCase()] || 'ADD',
   };
@@ -136,17 +141,19 @@ export function normalizeTask(t) {
     description: pick(t, 'description', 'content') || '',
     status: TASK_STATUS.includes(st) ? st : 'TODO',
     priority: PRIORITY[String(pick(t, 'priority') || 'MEDIUM').toUpperCase()] || 'MEDIUM',
-    assignee: normalizeMember(pick(t, 'assignee', 'manager')),
+    // 백엔드는 assigneeId(숫자 또는 null)만 보낸다 → {id} 만 남기고, 닉네임·아이콘은 화면이 팀원 목록으로 채운다
+    assignee: normalizeMember(pick(t, 'assignee', 'manager')) ?? (pick(t, 'assigneeId') != null ? { id: pick(t, 'assigneeId') } : null),
     startDate: pick(t, 'startDate', 'workDate') || '',
     dueDate: pick(t, 'dueDate', 'deadline', 'endDate') || '',
-    pullCount: Number(pick(t, 'pullCount', 'prCount') || 0),
+    // 백엔드는 pullCount 를 보내지 않는다 → 없으면 undefined (화면의 PR 배지는 숨겨진다)
+    pullCount: pick(t, 'pullCount', 'prCount') != null ? Number(pick(t, 'pullCount', 'prCount')) : undefined,
     createdAt: pick(t, 'createdAt'),
   };
 }
 export const normalizeTasks = (x) => list(x, normalizeTask);
 
 /* PR 상태: 화면·URL 은 소문자(waiting/approved/closed), 서버는 대문자로 보낸다고 가정 */
-const PR_STATUS = { WAITING: 'waiting', OPEN: 'waiting', APPROVED: 'approved', CLOSED: 'closed', REJECTED: 'closed' };
+const PR_STATUS = { WAITING: 'waiting', OPEN: 'waiting', APPROVED: 'approved', APPROVE: 'approved', CLOSED: 'closed', REJECTED: 'closed', DENIED: 'closed' };
 export const pullStatusToApi = (s) => (s ? String(s).toUpperCase() : undefined);
 export function normalizePull(p) {
   const task = pick(p, 'task');

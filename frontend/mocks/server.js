@@ -58,7 +58,8 @@ export async function mockFetch(route, req) {
     saveDb();
     if (out && out.blob) return { status: 200, blob: out.blob, filename: out.filename };
     const status = (out && out.status) || 200;
-    return { status, data: status === 204 ? null : { success: true, data: out ? out.data : null } };
+    // 핸들러가 meta(페이지 정보)를 주면 응답 최상위에 펼친다 (명세: page/size/totalPages/totalElements 는 data 밖)
+    return { status, data: status === 204 ? null : { success: true, data: out ? out.data : null, ...(out && out.meta) } };
   } catch (e) {
     if (e instanceof MockHttpError) return { status: e.status, data: { success: false, message: e.message } };
     console.error('[mock]', e);

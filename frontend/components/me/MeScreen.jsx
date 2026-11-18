@@ -24,7 +24,7 @@ const STATUS_ORDER = { TODO: 0, DOING: 1, DONE: 2 };
 async function loadMine(me) {
   const teams = await getTeams();
   const perTeam = await Promise.all(teams.map(async (t) => {
-    const [tasks, waiting, commits] = await Promise.all([getTasks(t.id), getPulls(t.id, 'waiting'), getCommits(t.id)]);
+    const [tasks, waiting, commits] = await Promise.all([getTasks(t.id), getPulls(t.id, 'waiting'), getCommits(t.id, { size: 100 })]);
     return { team: t, tasks, waiting, commits };
   }));
   return {

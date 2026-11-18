@@ -15,7 +15,7 @@ const d = (s) => new Date(s).toISOString();
 
 function seed() {
   return {
-    seq: { user: 4, team: 3, file: 8, version: 10, commit: 11, task: 10, pull: 12, review: 4, session: 0 },
+    seq: { user: 4, team: 3, file: 8, version: 14, commit: 15, task: 10, pull: 12, review: 4, session: 0 },
     sessions: {},
     users: [
       { id: 1, email: 'saessak@example.com', password: 'password123', nickname: '새싹', profileIcon: 'sprout' },
@@ -59,6 +59,11 @@ function seed() {
       { id: 8, fileId: 7, version: 1, size: 1_782_579, uploaderId: 1, commitId: 9, uploadedAt: d('2026-11-03T16:00:00+09:00') },
       { id: 9, fileId: 7, version: 2, size: 1_887_437, uploaderId: 1, commitId: 10, uploadedAt: d('2026-11-04T10:30:00+09:00') },
       { id: 10, fileId: 8, version: 1, size: 24_576, uploaderId: 2, commitId: 11, uploadedAt: d('2026-10-30T20:00:00+09:00') },
+      // 커밋 목록 페이징(10건 단위) 확인용 추가분
+      { id: 11, fileId: 3, version: 2, size: 2_621_440, uploaderId: 1, commitId: 12, uploadedAt: d('2026-11-04T15:00:00+09:00') },
+      { id: 12, fileId: 4, version: 2, size: 53_248, uploaderId: 4, commitId: 13, uploadedAt: d('2026-11-05T09:30:00+09:00') },
+      { id: 13, fileId: 5, version: 2, size: 102_400, uploaderId: 3, commitId: 14, uploadedAt: d('2026-11-05T17:10:00+09:00') },
+      { id: 14, fileId: 7, version: 3, size: 1_904_640, uploaderId: 2, commitId: 15, uploadedAt: d('2026-11-06T11:20:00+09:00') },
     ],
     commits: [
       { id: 1, teamId: 1, hash: '5e6f7a', message: '회의록 초안 업로드', type: 'UPLOAD', authorId: 4, createdAt: d('2026-10-28T21:00:00+09:00'), prId: null, excluded: false, items: [{ fileId: 1, versionId: 1, action: 'ADD' }] },
@@ -72,6 +77,11 @@ function seed() {
       { id: 9, teamId: 1, hash: 'b7c8d9', message: '요구사항정의서 업로드', type: 'UPLOAD', authorId: 1, createdAt: d('2026-11-03T16:00:00+09:00'), prId: null, excluded: false, items: [{ fileId: 7, versionId: 8, action: 'ADD' }] },
       { id: 10, teamId: 1, hash: 'f0e1d2', message: '요구사항정의서 화면 목록 보완', type: 'UPLOAD', authorId: 1, createdAt: d('2026-11-04T10:30:00+09:00'), prId: null, excluded: false, items: [{ fileId: 7, versionId: 9, action: 'MODIFY' }] },
       { id: 11, teamId: 2, hash: '2a3b4c', message: '스터디 계획 업로드', type: 'UPLOAD', authorId: 2, createdAt: d('2026-10-30T20:00:00+09:00'), prId: null, excluded: false, items: [{ fileId: 8, versionId: 10, action: 'ADD' }] },
+      // 커밋 목록 페이징(10건 단위) 확인용 추가분 → 1팀 화면 기준 13건(2페이지)
+      { id: 12, teamId: 1, hash: 'c5d6e7', message: '기획서 일정표 수정', type: 'UPLOAD', authorId: 1, createdAt: d('2026-11-04T15:00:00+09:00'), prId: null, excluded: false, items: [{ fileId: 3, versionId: 11, action: 'MODIFY' }] },
+      { id: 13, teamId: 1, hash: '8e9f0a', message: '회의록 11월 5일 내용 추가', type: 'UPLOAD', authorId: 4, createdAt: d('2026-11-05T09:30:00+09:00'), prId: null, excluded: false, items: [{ fileId: 4, versionId: 12, action: 'MODIFY' }] },
+      { id: 14, teamId: 1, hash: '1b2c3d', message: 'API 명세 오류 응답 정리', type: 'UPLOAD', authorId: 3, createdAt: d('2026-11-05T17:10:00+09:00'), prId: null, excluded: false, items: [{ fileId: 5, versionId: 13, action: 'MODIFY' }] },
+      { id: 15, teamId: 1, hash: '4e5f6a', message: '요구사항정의서 권한 항목 보완', type: 'UPLOAD', authorId: 2, createdAt: d('2026-11-06T11:20:00+09:00'), prId: null, excluded: false, items: [{ fileId: 7, versionId: 14, action: 'MODIFY' }] },
     ],
     tasks: [
       { id: 1, teamId: 1, title: '와이어프레임 작성', description: '화면 7개의 와이어프레임을 만들어요.', status: 'TODO', priority: 'MEDIUM', assigneeId: 4, startDate: '2026-11-05', dueDate: '2026-11-08', createdAt: d('2026-10-28T10:00:00+09:00') },

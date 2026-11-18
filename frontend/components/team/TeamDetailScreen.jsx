@@ -15,7 +15,6 @@ import Field from '@/components/common/Field';
 import Icon from '@/components/common/Icon';
 import { Avatar } from '@/components/common/Who';
 import { formatDate } from '@/utils/format';
-import { checkEmail } from '@/utils/validate';
 import { EditTeamModal, DeleteTeamModal, MemberModal } from './TeamModals';
 
 function AddMemberBox({ teamId, onAdded }) {
