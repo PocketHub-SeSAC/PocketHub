@@ -3,7 +3,7 @@
 
 /* - 커밋: 내 커밋 중 아직 PR 에 연결되지 않은 것만, 1개 이상
    - Task: 1개 연결
-   - 리뷰어 지정은 백엔드에 아직 없다 → 작성자가 아닌 팀원 누구나 승인·거부 (TODO : reviewerIds 저장이 생기면 다시 추가)
+   - 리뷰어는 지정하지 않는다 → 작성자가 아닌 팀원 누구나 리뷰·승인·거부
    만들면 바로 "리뷰 대기" */
 import { useState } from 'react';
 import { createPull } from '@/services/pulls';

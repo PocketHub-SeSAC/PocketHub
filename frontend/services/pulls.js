@@ -1,10 +1,9 @@
 /* [담당 5] PR·리뷰 API (API-029 ~ 037) */
-import { request, USE_MOCK } from './client';
+import { request } from './client';
 import { normalizePull, normalizePulls, normalizeReview, normalizeReviews, pullStatusToApi } from './adapter';
 
-/* 리뷰(의견) API-034~037 은 백엔드에 아직 없다 → 실서버에서는 리뷰 영역을 숨긴다.
-   백엔드 review 패키지가 만들어지면 true 로 바꾼다 */
-export const REVIEWS_ENABLED = USE_MOCK;
+/* 리뷰(의견) API-034~037: 백엔드 review 패키지가 생겨 실서버에서도 켠다 */
+export const REVIEWS_ENABLED = true;
 
 export const PULLS_API = {
   create:       { key: 'pulls.create',       method: 'POST',   path: '/api/v1/teams/{teamId}/pulls' },                                // API-029
@@ -22,6 +21,8 @@ export const PULLS_API = {
 
 /** 승인·거부할 수 있는지: 리뷰 대기 + 내가 작성자가 아님 (백엔드 규칙과 같음. 리뷰어 지정은 아직 없음) */
 export const canDecidePull = (p, me) => p.status === 'waiting' && !!me && p.author?.id !== me.id;
+// 리뷰어 지정 없이 PR 작성자를 뺀 팀원 누구나 리뷰 작성, 리뷰 대기일 때만
+export const canReviewPull = (p, me) => p.status === 'waiting' && !!me && p.author?.id !== me.id;
 /** 수정·삭제할 수 있는지: 리뷰 대기 + 내가 작성자 */
 export const canEditPull = (p, me) => p.status === 'waiting' && !!me && p.author?.id === me.id;
 
