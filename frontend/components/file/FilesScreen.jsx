@@ -21,7 +21,7 @@ import { formatDate, formatSize } from '@/utils/format';
 import FilesToolbar from './FilesToolbar';
 import UploadModal from './UploadModal';
 
-const ACTION = { ADD: ['추가', 'badge ok'], UPDATE: ['수정', 'badge'], DELETE: ['삭제', 'badge end'] };
+const ACTION = { ADD: ['추가', 'chg add'], UPDATE: ['수정', 'chg'], DELETE: ['삭제', 'chg del'] };
 
 function DeleteFileModal({ teamId, file, onClose, onDone }) {
   const toast = useToast();
