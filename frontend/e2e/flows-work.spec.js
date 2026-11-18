@@ -73,7 +73,6 @@ test.describe('PR·리뷰', () => {
     await page.getByRole('button', { name: '새 PR' }).click();
     await page.getByLabel('제목').fill('E2E PR');
     await page.getByRole('checkbox', { name: /요구사항정의서 업로드/ }).click();
-    await page.getByRole('checkbox', { name: /달팽이/ }).click();
     await page.getByLabel('연결할 Task').selectOption({ label: '[TODO] 요구사항 정의서 보완' });
     await page.getByRole('button', { name: 'PR 만들기' }).click();
     await expect(page).toHaveURL(/\/teams\/1\/pulls\/13\?status=waiting$/);
@@ -93,7 +92,7 @@ test.describe('PR·리뷰', () => {
     await expect(page.locator('.stamp')).toContainText('승인됨');
   });
 
-  test('PR을 거부하면 사유가 리뷰로 남는다', async ({ page }) => {
+  test('PR을 거부하면 사유가 상세에 남는다', async ({ page }) => {
     await login(page);
     await page.goto('/teams/1/pulls/12?status=waiting');
     await page.getByRole('button', { name: '거부', exact: true }).click();
@@ -102,5 +101,6 @@ test.describe('PR·리뷰', () => {
     await page.getByRole('dialog').getByRole('button', { name: '거부', exact: true }).click();
     await expect(page).toHaveURL(/status=closed/);
     await expect(page.locator('.stamp.end')).toContainText('거부됨');
+    await expect(page.getByRole('note')).toContainText('다시 확인해 주세요');
   });
 });

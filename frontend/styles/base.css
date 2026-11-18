@@ -267,6 +267,11 @@ main { padding: 28px 0 80px; }
 .item .grow { flex: 1; min-width: 0; }
 .item .id { font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .item .size { color: var(--ink-soft); font-size: 14px; }
+/* 파일 변경 종류 표시: 버튼처럼 보이지 않게 테두리 없는 글자로 (+ 추가 / ~ 수정 / − 삭제) */
+.chg { flex: none; font-size: 14px; font-weight: 700; white-space: nowrap; color: var(--ink-soft); }
+.chg.add { color: var(--ok); }
+.chg.del { color: var(--danger); }
+.item .who { font-size: 14px; }
 
 /* ---------- 태스크 보드 ---------- */
 .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; align-items: start; }

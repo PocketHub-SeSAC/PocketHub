@@ -26,6 +26,14 @@ export function Avatar({ user, title, size }) {
   return <span className={`av ${avClass(user)}`} style={style} title={title || user.nickname} aria-hidden='true'>{(user.nickname || '?').charAt(0)}</span>;
 }
 
+/** 응답에 닉네임·아이콘이 빠진 사람(id 만 온 경우 등)을 팀원 목록으로 채운다. 응답에 있는 값이 우선 */
+export function fillProfile(members, u) {
+  if (!u) return u;
+  const m = (members || []).find((x) => String(x.id) === String(u.id));
+  if (!m) return u;
+  return { ...u, nickname: u.nickname || m.nickname, profileIcon: u.profileIcon ?? m.profileIcon ?? null };
+}
+
 /** user 가 없으면 emptyText 를 보여준다 (예: 담당자 없음) */
 export default function Who({ user, me = false, emptyText = '', className = '' }) {
   if (!user) return emptyText ? <span className={`who none muted ${className}`}>{emptyText}</span> : null;
