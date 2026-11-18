@@ -1,6 +1,6 @@
 /* [담당 2] 목업: 팀·팀원 */
 import { nextId } from '@/mocks/db';
-import { fail, ok, created, noContent, publicUser, requireMember, str, toId, now, EMAIL_RE } from '@/mocks/util';
+import { fail, ok, created, noContent, publicUser, requireMember, str, toId, now } from '@/mocks/util';
 
 const memberView = (db, teamId, m) => ({
   ...publicUser(db, m.userId),
@@ -76,13 +76,15 @@ export const handlers = {
   'teams.addMember': ({ db, user, params, body }) => {
     const team = requireMember(db, params.teamId, user);
     requireOwner(team, user, '팀원을 추가할');
-    const email = str(body?.email).toLowerCase();
-    if (!email) fail(400, '추가할 사용자의 이메일을 입력해 주세요.');
-    if (!EMAIL_RE.test(email)) fail(400, '이메일 형식이 올바르지 않아요. 예: you@example.com');
-    const target = db.users.find((u) => u.email === email);
+    // 서버처럼 keyword 하나로 받는다: '@'가 있으면 이메일, 없으면 닉네임으로 찾는다
+    const keyword = str(body?.keyword);
+    if (!keyword) fail(400, '추가할 사용자의 이메일 또는 닉네임을 입력해주세요.');
+    const target = keyword.includes('@')
+      ? db.users.find((u) => u.email === keyword.toLowerCase())
+      : db.users.find((u) => u.nickname === keyword);
     // 404 는 "팀을 찾을 수 없음"과 헷갈리지 않게 400 으로 돌려준다
-    if (!target) fail(400, '가입되지 않은 이메일이에요. 먼저 회원가입을 부탁해 주세요.');
-    if (db.members.some((m) => m.teamId === team.id && m.userId === target.id)) fail(409, '이미 이 팀의 팀원이에요.');
+    if (!target) fail(400, '가입되지 않은 이메일 또는 닉네임입니다.');
+    if (db.members.some((m) => m.teamId === team.id && m.userId === target.id)) fail(409, '이미 팀원입니다.');
     const m = { teamId: team.id, userId: target.id, joinedAt: now() };
     db.members.push(m);
     return created(memberView(db, team.id, m));
