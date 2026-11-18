@@ -25,12 +25,12 @@ function AddMemberBox({ teamId, onAdded }) {
   const [busy, setBusy] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const fe = checkEmail(email);
+    const fe = email.trim() ? '' : '이메일 또는 닉네임을 입력해 주세요.';
     setErr(fe);
     if (fe) return;
     setBusy(true);
     try {
-      const m = await addMember(teamId, { email: email.trim() });
+      const m = await addMember(teamId, { keyword: email.trim() });
       toast(`${m.nickname}님을 팀원으로 추가했어요.`);
       setEmail('');
       onAdded();
@@ -38,7 +38,7 @@ function AddMemberBox({ teamId, onAdded }) {
   };
   return (
     <form className='addbox' onSubmit={handleSubmit} noValidate>
-      <Field id='add-member-email' label='팀원 추가' type='email' placeholder='가입된 사용자의 이메일' value={email} error={err}
+      <Field id='add-member-email' label='팀원 추가' type='text' placeholder='가입된 사용자의 이메일 또는 닉네임' value={email} error={err}
         onChange={(e) => setEmail(e.target.value)} />
       <button className='btn btn-ink' type='submit' disabled={busy}><Icon name='plus' />{busy ? '추가 중…' : '추가'}</button>
     </form>

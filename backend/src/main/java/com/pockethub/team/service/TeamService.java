@@ -1,5 +1,6 @@
 package com.pockethub.team.service;
 
+import com.pockethub.file.service.FileService;
 import com.pockethub.user.domain.User;
 import com.pockethub.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -8,15 +9,17 @@ import com.pockethub.team.domain.Repo;
 import com.pockethub.team.dto.*;
 import com.pockethub.team.repository.CollaboratorRepository;
 import com.pockethub.team.repository.RepoRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.pockethub.common.exception.ConflictException;
 import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 
+import java.io.IOException;
 import java.util.List;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true) // 기본은 조회 전용
@@ -25,6 +28,7 @@ public class TeamService {
     private final RepoRepository repoRepository;
     private final CollaboratorRepository collaboratorRepository;
     private final UserRepository userRepository;
+    private final FileService fileService;
 
     // ===== 팀 =====
 
@@ -32,7 +36,7 @@ public class TeamService {
     public TeamResponse createTeam(Long loginUserId, CreateTeamRequest request) {
 
         if (request.getName() == null || request.getName().isBlank()) {
-            throw new IllegalArgumentException("저장소 이름을 입력해주세요.");
+            throw new IllegalArgumentException("팀 이름을 입력해주세요.");
         }
 
         User owner = findUser(loginUserId);
@@ -43,17 +47,18 @@ public class TeamService {
 
         Repo repo = repoRepository.save(request.toEntity(owner));
         collaboratorRepository.save(new Collaborator(owner, repo));   // 만든 사람도 팀원으로
-        return new TeamResponse(repo);
+        return toResponse(repo);
     }
 
-    public List<TeamResponse> getTeams() {
-        return repoRepository.findAll().stream()
-                .map(TeamResponse::new)
+    public List<TeamResponse> getTeams(Long loginUserId) {
+        User user = findUser(loginUserId);
+        return collaboratorRepository.findAllByUser(user).stream()
+                .map(c -> toResponse(c.getRepo()))
                 .toList();
     }
 
     public TeamResponse getTeam(Long teamId) {
-        return new TeamResponse(findRepo(teamId));
+        return toResponse(findRepo(teamId));
     }
 
     @Transactional
@@ -62,7 +67,7 @@ public class TeamService {
         checkOwner(repo, loginUserId);
 
         if (request.getName() != null && request.getName().isBlank()) {
-            throw new IllegalArgumentException("저장소 이름을 입력해주세요.");
+            throw new IllegalArgumentException("팀 이름을 입력해주세요.");
         }
         if (request.getName() != null
                 && !request.getName().equals(repo.getName())
@@ -72,14 +77,23 @@ public class TeamService {
 
 
         repo.update(request.getName(), request.getDescription());   // save 안 해도 자동 반영
-        return new TeamResponse(repo);
+        return toResponse(repo);
     }
 
     @Transactional
     public void deleteTeam(Long loginUserId, Long teamId) {
         Repo repo = findRepo(teamId);
         checkOwner(repo, loginUserId);
-        repoRepository.delete(repo);   // 팀원 연결은 DB의 ON DELETE CASCADE로 같이 삭제
+
+        repoRepository.delete(repo);
+        repoRepository.flush();   // DB 삭제를 먼저 실행: 실패하면 아래 폴더 삭제까지 안 감
+
+        // 팀 삭제 성공 후 팀 파일 폴더 삭제
+        try {
+            fileService.cleanupSavedFiles(teamId, null);
+        } catch (IOException | RuntimeException e) {
+            log.warn("팀 폴더 삭제 실패. teamId={}", teamId, e);
+        }
     }
 
     // ===== 팀원 =====
@@ -92,15 +106,25 @@ public class TeamService {
     }
 
     @Transactional
-    public void addMember(Long loginUserId, Long teamId, AddMemberRequest request) {
+    public TeamMemberResponse addMember(Long loginUserId, Long teamId, AddMemberRequest request) {
         Repo repo = findRepo(teamId);
         checkOwner(repo, loginUserId);
-        User user = findUser(request.getUserId());
+
+        if (request.getKeyword() == null || request.getKeyword().isBlank()) {
+            throw new IllegalArgumentException("추가할 사용자의 이메일 또는 닉네임을 입력해주세요.");
+        }
+        String keyword = request.getKeyword().trim();
+
+        User user = (keyword.contains("@")
+                ? userRepository.findByEmail(keyword)
+                : userRepository.findByNickname(keyword))
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일 또는 닉네임입니다."));
 
         if (collaboratorRepository.existsByRepoAndUser(repo, user)) {
             throw new ConflictException("이미 팀원입니다.");
         }
-        collaboratorRepository.save(new Collaborator(user, repo));
+        Collaborator saved = collaboratorRepository.save(new Collaborator(user, repo));
+        return new TeamMemberResponse(saved);
     }
 
     @Transactional
@@ -136,6 +160,11 @@ public class TeamService {
             throw new ForbiddenException("팀장만 할 수 있습니다.");
         }
     }
+
+    private TeamResponse toResponse(Repo repo) {
+        return new TeamResponse(repo, collaboratorRepository.countByRepo(repo));
+    }
+
 }
 
 
