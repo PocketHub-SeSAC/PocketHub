@@ -1,6 +1,7 @@
 package com.pockethub.file.service;
 
 import com.pockethub.commit.dto.CommitDTO;
+import com.pockethub.common.exception.ConflictException;
 import com.pockethub.common.exception.FileNotCleanupException;
 import com.pockethub.common.exception.FileNotCreatedException;
 import com.pockethub.common.exception.NotFoundException;
@@ -105,10 +106,10 @@ public class FileService {
             throw new NotFoundException("삭제하려는 파일이 존재하지 않습니다.");
         }
         if(!prevFile.getIsLatest()) {
-            throw new IllegalArgumentException("삭제하려는 파일이 최신 파일이 아닙니다. 최신 파일을 선택해주세요.");
+            throw new ConflictException("삭제하려는 파일이 최신 파일이 아닙니다. 최신 파일을 선택해주세요.");
         }
         if(prevFile.getState().equals(FileState.DELETE)) {
-            throw new IllegalArgumentException("삭제하려는 파일은 이미 삭제되어 있습니다.");
+            throw new ConflictException("삭제하려는 파일은 이미 삭제되어 있습니다.");
         }
 
         prevFile.setIsLatest(false);

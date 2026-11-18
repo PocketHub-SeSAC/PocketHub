@@ -2,6 +2,7 @@ package com.pockethub.common.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.pockethub.common.response.ErrorResponse;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -15,6 +16,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+@Log4j2
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -118,7 +120,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlerIllegalArgument(
             RuntimeException exception, WebRequest request
     ) {
-        System.out.println(exception.getMessage());
+        log.error("e: ", exception);
         ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "정의되지 않은 서버 내부 오류가 발생했습니다.", extractPath(request));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

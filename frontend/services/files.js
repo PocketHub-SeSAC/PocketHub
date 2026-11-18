@@ -15,9 +15,11 @@ export const FILES_API = {
 };
 
 /** 파일 1개 = 커밋 1개. multipart: files(백엔드는 여러 개를 받지만 화면은 1개만 보냄) + commitMessage(필수) */
-export function uploadFile(teamId, { file, message }) {
+export function uploadFile(teamId, { files = [], message }) {
   const form = new FormData();
-  form.append('files', file);
+  files.forEach(file => {
+    form.append('files', file);
+  });
   form.append('commitMessage', message);
   return request(FILES_API.upload, { params: { teamId }, body: form }).then(normalizeCommit);
 }
@@ -60,5 +62,5 @@ export const getCommitFiles = (teamId, commitId) =>
   request(FILES_API.commitFiles, { params: { teamId, commitId }, handle404: false }).then(normalizeCommitFiles);
 
 /** 커밋에 포함된 버전(이전 버전 포함) 다운로드 */
-export const downloadCommitFile = (teamId, commitId, fileId) =>
-  request(FILES_API.commitFileDownload, { params: { teamId, commitId, fileId }, blob: true });
+export const downloadCommitFile = (teamId, commitId) =>
+  request(FILES_API.commitFileDownload, { params: { teamId, commitId }, blob: true });

@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -88,15 +89,18 @@ public class CommitController {
     ) {
         CommitDTO commit = commitService.findCommitDetail(commitId, repoId);
 
-        return ResponseEntity.ok(new ResponseDTO(
-                Map.of(
-                        "commitId", commit.getCommitId(),
-                        "message", commit.getMessage(),
-                        "authorId", commit.getUser().getUserId(),
-                        "authorNickname", commit.getUser().getNickname(),
-                        "createdAt", commit.getCreatedAt(),
-                        "files", commit.getFiles()
-                ), "Commit 상세 조회에 성공했습니다."
+        Map<String, Object> response = new HashMap<>(Map.of(
+                "commitId", commit.getCommitId(),
+                "message", commit.getMessage(),
+                "createdAt", commit.getCreatedAt()
+        ));
+        // Map.of 는 key 와 value 전부에 null 을 허용하지 않는다.
+        response.put("authorId", commit.getUser().getUserId());
+        response.put("authorNickname", commit.getUser().getNickname());
+        response.put("files", commit.getFiles());
+        response.put("prId", commit.getPrId());
+
+        return ResponseEntity.ok(new ResponseDTO(response, "Commit 상세 조회에 성공했습니다."
         ));
     }
 

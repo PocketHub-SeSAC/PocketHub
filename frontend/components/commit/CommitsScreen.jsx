@@ -4,7 +4,7 @@
 /* 커밋 상세는 API-019(커밋 정보)와 API-020(포함 파일)을 따로 불러서 그린다.
    포함 파일은 그 커밋 당시 버전으로 내려받을 수 있다(API-021) → 이전 버전 다운로드. */
 import Link from 'next/link';
-import { getCommitsPage, getCommit, getCommitFiles, getFiles, downloadCommitFile } from '@/services/files';
+import { getCommitsPage, getCommit, getCommitFiles, getFiles, downloadFile, downloadCommitFile } from '@/services/files';
 import { saveBlob } from '@/services/client';
 import { useTeam } from '@/components/team/TeamShell';
 import useAsync from '@/hooks/useAsync';
@@ -17,15 +17,18 @@ import { formatDate, formatDateTime, formatSize } from '@/utils/format';
 import FilesToolbar from '@/components/file/FilesToolbar';
 import UploadModal from '@/components/file/UploadModal';
 
-const TYPE = { UPLOAD: ['업로드', 'badge'], DELETE: ['삭제', 'badge end'] };
-const ACTION = { ADD: ['추가', 'badge ok'], MODIFY: ['수정', 'badge'], DELETE: ['삭제', 'badge end'] };
+const ACTION = { ADD: ['추가', 'badge ok'], UPDATE: ['수정', 'badge'], DELETE: ['삭제', 'badge end'] };
 
 function CommitSide({ teamId, commitId, me, onClose }) {
   const toast = useToast();
   const info = useAsync(() => getCommit(teamId, commitId), [teamId, commitId]);       // API-019
-  const files = useAsync(() => getCommitFiles(teamId, commitId), [teamId, commitId]); // API-020
-  const handleDownload = async (f) => {
-    try { saveBlob(await downloadCommitFile(teamId, commitId, f.fileId), f.name); toast(`${f.name} v${f.version}을(를) 내려받아요.`); }
+  const files = info.data?.files;
+  const handleDownload = async () => {
+    try { saveBlob(await downloadCommitFile(teamId, commitId), commitId+".zip"); toast(`커밋 ID v${commitId}을(를) 내려받아요.`); }
+    catch (err) { toast(err.message); }
+  };
+  const handleDownloadFile = async (f) => {
+    try { saveBlob(await downloadFile(teamId, f.fileId), f.fileName); toast(`${f.fileName} 다운로드를 시작해요.`); }
     catch (err) { toast(err.message); }
   };
   const c = info.data;
@@ -47,22 +50,20 @@ function CommitSide({ teamId, commitId, me, onClose }) {
           )}
         </ListState>
         <div>
-          <div className='sec-label'>포함된 파일</div>
-          <ListState loading={files.loading} error={files.error} onRetry={() => files.reload()}
-            empty={files.data && !files.data.length} emptyText='포함된 파일이 없어요.'>
+          <div className='sec-label'>포함된 파일 {(files && files.length > 0 && files[0].state !== 'DELETE') && <button className='btn btn-sm' type='button' aria-label={`전체 다운로드`} onClick={() => handleDownload()}><Icon name='download' />다운로드</button>}</div>
+          {(!files || files.length == 0) && '포함된 파일이 없어요.'}
             <ul className='items'>
-              {(files.data || []).map((f) => (
+              {(files || []).map((f) => (
                 <li key={f.fileId} className='item'>
-                  <span className={ACTION[f.action][1]} style={{ flex: 'none' }}>{ACTION[f.action][0]}</span>
+                  <span className={ACTION[f.state][1]} style={{ flex: 'none' }}>{ACTION[f.state][0]}</span>
                   <Icon name='file' />
-                  <span className='grow'>{f.name} <span className='badge ver'>v{f.version}</span> <span className='size'>{formatSize(f.size)}</span></span>
-                  {f.action !== 'DELETE' && (
-                    <button className='btn btn-sm' type='button' aria-label={`${f.name} v${f.version} 다운로드`} onClick={() => handleDownload(f)}><Icon name='download' />다운로드</button>
+                  <span className='grow'>{f.fileName} <span className='size'>{formatSize(f.size)}</span></span>
+                  {f.state !== 'DELETE' && (
+                    <button className='btn btn-sm' type='button' aria-label={`다운로드`} onClick={() => handleDownloadFile(f)}><Icon name='download' />다운로드</button>
                   )}
                 </li>
               ))}
             </ul>
-          </ListState>
         </div>
       </div>
     </aside>

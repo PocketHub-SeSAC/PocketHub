@@ -249,7 +249,7 @@ main { padding: 28px 0 80px; }
 .fhead { color: var(--ink-soft); font-weight: 700; font-size: 14px; }
 .frow .nm { font-weight: 700; display: inline-flex; gap: 8px; align-items: center; min-width: 0; }
 .frow .nm span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.crow { display: grid; grid-template-columns: 100px minmax(0, 1fr) 130px 100px; gap: 12px; align-items: center; padding: 10px 14px; border-top: 2px solid var(--tint); }
+.crow { display: grid; grid-template-columns: 180px minmax(0, 1fr) 130px 100px; gap: 12px; align-items: center; padding: 10px 14px; border-top: 2px solid var(--tint); }
 .crow .id { font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .frow.sel, .crow.sel { background: var(--ink); color: var(--on-ink); }
 .frow.sel .muted, .crow.sel .muted, .crow.sel .id { color: var(--tint); }
