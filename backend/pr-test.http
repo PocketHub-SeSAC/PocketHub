@@ -133,6 +133,42 @@ Content-Type: application/json
   "title": "남이 수정"
 }
 
+### PR 연결 Task 변경 - 작성자 본인 (200), Task 가 삭제돼 연결이 끊긴 PR 을 다시 연결할 때 사용
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/task
+Authorization: Bearer {{authorToken}}
+Content-Type: application/json
+
+{
+  "taskId": 1
+}
+
+### PR 연결 Task 변경 - Task 없이 (400)
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/task
+Authorization: Bearer {{authorToken}}
+Content-Type: application/json
+
+{
+  "taskId": null
+}
+
+### PR 연결 Task 변경 - 없는 Task·다른 팀 Task (404)
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/task
+Authorization: Bearer {{authorToken}}
+Content-Type: application/json
+
+{
+  "taskId": 9999
+}
+
+### PR 연결 Task 변경 - 작성자가 아닌 사람 (403)
+PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/task
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "taskId": 1
+}
+
 ### 리뷰 작성 - PR 작성자 본인 (403), 리뷰어 지정 없이 작성자를 뺀 팀원 누구나 가능
 POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
 Authorization: Bearer {{authorToken}}

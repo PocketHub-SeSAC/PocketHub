@@ -4,6 +4,7 @@ import com.pockethub.pr.dto.PrCreateRequest;
 import com.pockethub.pr.dto.PrDetailResponse;
 import com.pockethub.pr.dto.PrRejectRequest;
 import com.pockethub.pr.dto.PrSummaryResponse;
+import com.pockethub.pr.dto.PrTaskRequest;
 import com.pockethub.pr.dto.PrUpdateRequest;
 import com.pockethub.pr.service.PrService;
 import org.springframework.http.HttpStatus;
@@ -85,6 +86,19 @@ public class PrController {
     ) {
         return ResponseEntity.ok(
                 prService.updatePr(Long.valueOf(authentication.getName()), repoId, prId, request)
+        );
+    }
+
+    // PR 연결 Task 변경: 작성자 본인, 리뷰 대기(OPEN) 상태일 때만. 삭제된 Task 대신 다시 연결할 때 쓴다
+    @PatchMapping("/{prId}/task")
+    public ResponseEntity<PrDetailResponse> changeTask(
+            Authentication authentication,
+            @PathVariable("teamId") long repoId,
+            @PathVariable("prId") long prId,
+            @RequestBody PrTaskRequest request
+    ) {
+        return ResponseEntity.ok(
+                prService.changeTask(Long.valueOf(authentication.getName()), repoId, prId, request)
         );
     }
 

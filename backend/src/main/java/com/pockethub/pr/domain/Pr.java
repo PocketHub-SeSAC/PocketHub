@@ -65,6 +65,11 @@ public class Pr {
         this.text = text;
     }
 
+    // Task 가 삭제돼 task_id 가 NULL 이 됐을 때 다시 연결하거나 다른 Task 로 바꾼다
+    public void changeTask(long taskId) {
+        this.taskId = taskId;
+    }
+
     public void approve(long approverId) {
         decide(PrState.APPROVE, approverId, null);
     }

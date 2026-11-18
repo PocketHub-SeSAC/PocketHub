@@ -13,6 +13,7 @@ import com.pockethub.pr.dto.PrCreateRequest;
 import com.pockethub.pr.dto.PrDetailResponse;
 import com.pockethub.pr.dto.PrRejectRequest;
 import com.pockethub.pr.dto.PrSummaryResponse;
+import com.pockethub.pr.dto.PrTaskRequest;
 import com.pockethub.pr.dto.PrUpdateRequest;
 import com.pockethub.pr.repository.PrRepository;
 import com.pockethub.pr.repository.PrRepository.MemberRow;
@@ -327,6 +328,70 @@ class PrServiceTest {
     }
 
     @Nested
+    @DisplayName("PR 연결 Task 변경")
+    class ChangeTask {
+
+        @Test
+        @DisplayName("Task 가 삭제돼 연결이 끊긴 PR 에 작성자가 같은 팀 Task 를 다시 연결한다")
+        void relink() {
+            Pr pr = withId(new Pr("PR", "설명", REPO_ID, null, AUTHOR_ID), PR_ID);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+            when(prRepository.findCommitsByPrId(PR_ID)).thenReturn(List.of());
+
+            PrDetailResponse response = prService.changeTask(AUTHOR_ID, REPO_ID, PR_ID, taskRequest(TASK_ID));
+
+            assertThat(pr.getTaskId()).isEqualTo(TASK_ID);
+            assertThat(response.getTask().title()).isEqualTo("로그인 화면");
+        }
+
+        @Test
+        @DisplayName("Task 를 고르지 않으면 400, 연결은 그대로")
+        void noTask() {
+            Pr pr = withId(new Pr("PR", "설명", REPO_ID, null, AUTHOR_ID), PR_ID);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+
+            assertThatThrownBy(() -> prService.changeTask(AUTHOR_ID, REPO_ID, PR_ID, taskRequest(null)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("연결할 Task를 골라 주세요.");
+            assertThat(pr.getTaskId()).isNull();
+        }
+
+        @Test
+        @DisplayName("없는 Task·다른 팀 Task 면 404, 연결은 그대로")
+        void otherTeamTask() {
+            Pr pr = withId(new Pr("PR", "설명", REPO_ID, null, AUTHOR_ID), PR_ID);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+            when(taskRepository.findById(99L)).thenReturn(Optional.of(taskEntity(OTHER_REPO_ID)));
+
+            assertError(() -> prService.changeTask(AUTHOR_ID, REPO_ID, PR_ID, taskRequest(99L)),
+                    NotFoundException.class, "Task를 찾을 수 없습니다.");
+            assertThat(pr.getTaskId()).isNull();
+        }
+
+        @Test
+        @DisplayName("작성자가 아니면 403")
+        void notAuthor() {
+            Pr pr = withId(new Pr("PR", "설명", REPO_ID, null, AUTHOR_ID), PR_ID);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+
+            assertError(() -> prService.changeTask(OTHER_USER_ID, REPO_ID, PR_ID, taskRequest(TASK_ID)),
+                    ForbiddenException.class, "내가 작성한 PR만 수정할 수 있어요.");
+            assertThat(pr.getTaskId()).isNull();
+        }
+
+        @Test
+        @DisplayName("이미 처리된 PR 은 409")
+        void alreadyDecided() {
+            Pr pr = withId(new Pr("PR", "설명", REPO_ID, null, AUTHOR_ID), PR_ID);
+            ReflectionTestUtils.setField(pr, "state", PrState.APPROVE);
+            when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(pr));
+
+            assertError(() -> prService.changeTask(AUTHOR_ID, REPO_ID, PR_ID, taskRequest(TASK_ID)),
+                    ConflictException.class, "이미 처리된 PR은 수정할 수 없어요.");
+        }
+    }
+
+    @Nested
     @DisplayName("PR 삭제")
     class Delete {
 
@@ -592,6 +657,12 @@ class PrServiceTest {
         request.setDescription("설명");
         request.setCommitIds(commitIds);
         request.setTaskId(TASK_ID);
+        return request;
+    }
+
+    private static PrTaskRequest taskRequest(Long taskId) {
+        PrTaskRequest request = new PrTaskRequest();
+        request.setTaskId(taskId);
         return request;
     }
 
