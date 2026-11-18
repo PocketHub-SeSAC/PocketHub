@@ -19,7 +19,7 @@ export const extOf = (name) => {
 
 /** 파일 하나 검사 → 문제가 있으면 한국어 오류 문구, 없으면 null */
 export function validateFile(files = [], rules = UPLOAD_RULES, prevFiles = []) {
-  if (!files || files.length == 0) return '올릴 파일을 골라 주세요.';
+  if (!files || files.length == 0) return ['올릴 파일을 골라 주세요.'];
   let fileSize = 0;
   let errMsg = [];
 

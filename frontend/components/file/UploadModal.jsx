@@ -44,13 +44,13 @@ export default function UploadModal({ teamId, existing, onClose, onDone }) {
       setFiles(prev => [...prev, ...arr]);
       if (!touchedMsg || !message.trim()) setMessage(`${baseName(arr[0].name)} 업로드`);
     }
-    setErrs((e) => ({ ...e, files: validate || '' }));
+    setErrs((e) => ({ ...e, files: validate || null }));
     // 직접 쓴 메시지가 없거나 비어 있으면 업로드한 첫번째 파일 이름으로 채워 준다
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const fe = { files: validateFile(files) || '', message: message.trim() ? '' : '커밋 메시지를 입력해 주세요.' };
+    const fe = { files: validateFile(files) || null, message: message.trim() ? null : '커밋 메시지를 입력해 주세요.' };
     setErrs(fe); setServerErr('');
     if (fe.files || fe.message) return;
     setBusy(true);
@@ -87,6 +87,7 @@ export default function UploadModal({ teamId, existing, onClose, onDone }) {
             </span>)}
           </div>
         )}
+        
         {errs.files && errs.files.length > 0 && errs.files.map((f, idx) => <div key={idx} className='alert' role='alert'><Icon name='x' />{f}</div>)}
 
         <Field id='upload-message' label='커밋 메시지' required maxLength={100} placeholder='예: ERD 초안 업로드' value={message} error={errs.message}
