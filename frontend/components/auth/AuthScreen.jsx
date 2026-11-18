@@ -75,7 +75,15 @@ function SignupForm({ onDone }) {
       await signup({ email: v.email.trim(), password: v.password, nickname: v.nickname.trim() });
       onDone(v.email.trim());
     } catch (err) {
-      setServerErr(err.message);
+      if (err.status === 400 && err.body?.errors) {
+        setErrs(err.body.errors);
+      } else if (err.status === 409 && err.message.includes('닉네임')) {
+        setErrs({ nickname: err.message });                
+      } else if (err.status === 409 && err.message.includes('이메일')) {
+        setErrs({ email: err.message });                   
+      } else {
+        setServerErr(err.message);                         
+      }
     } finally { setBusy(false); }
   };
 
@@ -86,7 +94,7 @@ function SignupForm({ onDone }) {
         onChange={(e) => setV({ ...v, email: e.target.value })} />
       <Field id='signup-password' label='비밀번호' required type='password' autoComplete='new-password' placeholder='8자 이상' value={v.password} error={errs.password}
         onChange={(e) => setV({ ...v, password: e.target.value })} />
-      <Field id='signup-nickname' label='닉네임' required placeholder='팀에서 보일 이름 (2~10자)' value={v.nickname} error={errs.nickname}
+      <Field id='signup-nickname' label='닉네임' required placeholder='팀에서 보일 이름 (2~45자)' value={v.nickname} error={errs.nickname}
         onChange={(e) => setV({ ...v, nickname: e.target.value })} />
       <button className='btn btn-ink' type='submit' disabled={busy}>{busy ? '가입 중…' : '회원가입'}</button>
       <p className='sub-hint'>가입이 끝나면 로그인 탭으로 바뀌어요.</p>

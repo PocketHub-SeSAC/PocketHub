@@ -37,24 +37,7 @@ public class AuthService {
             throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다");
         }
 
-        String accessToken = jwtProvider.createAccessToken(user.getId());
-        String refreshToken = refreshTokenProvider.createToken();
-
-        refreshTokenRepository.save(
-                new RefreshToken(
-                        user.getId(),
-                        refreshTokenProvider.hash(refreshToken),
-                        LocalDateTime.now().plus(refreshTokenProvider.getExpiration())
-                )
-        );
-
-        return LoginResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .expiresIn(jwtProvider.getAccessExpirationSeconds())
-                .memberId(user.getId())
-                .nickname(user.getNickname())
-                .build();
+        return issueTokens(user);
     }
 
     @Transactional
@@ -88,6 +71,8 @@ public class AuthService {
     }
 
     private LoginResponse issueTokens(User user) {
+        refreshTokenRepository.deleteByUserIdAndExpiredAtBefore(user.getId(), LocalDateTime.now());
+
         String accessToken = jwtProvider.createAccessToken(user.getId());
         String refreshToken = refreshTokenProvider.createToken();
 
