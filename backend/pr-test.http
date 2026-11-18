@@ -221,6 +221,19 @@ Authorization: Bearer {{memberToken}}
 POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/approve
 Authorization: Bearer {{memberToken}}
 
+### 리뷰 작성 - 이미 처리된(승인된) PR (409)
+POST {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "content": "승인 후 리뷰"
+}
+
+### 리뷰 목록 - 처리된 PR 도 조회는 가능 (200)
+GET {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}/reviews
+Authorization: Bearer {{memberToken}}
+
 ### PR 수정 - 이미 처리된 PR (409)
 PATCH {{baseUrl}}/teams/{{teamId}}/pulls/{{prId}}
 Authorization: Bearer {{authorToken}}

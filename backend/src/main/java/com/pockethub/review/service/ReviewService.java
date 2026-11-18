@@ -1,5 +1,6 @@
 package com.pockethub.review.service;
 
+import com.pockethub.common.exception.ConflictException;
 import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.common.validation.ValidationRules;
@@ -22,7 +23,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // PR 리뷰(댓글) — 프론트 목업 pulls.js 규칙에 맞춘다
-// - 리뷰어 지정 없음: PR 작성자를 뺀 팀원 누구나 작성 가능 (PR 상태와 상관없이)
+// - 리뷰어 지정 없음: PR 작성자를 뺀 팀원 누구나 작성 가능
+// - 승인·거부로 처리된 PR 에는 작성·수정·삭제 불가 (409), 조회는 가능
 // - 조회는 팀원 누구나, 수정·삭제는 리뷰 작성자 본인만
 @Service
 public class ReviewService {
@@ -40,6 +42,9 @@ public class ReviewService {
     @Transactional
     public ReviewResponse createReview(long userId, long repoId, long prId, ReviewRequest request) {
         Pr pr = validatePr(userId, repoId, prId);
+        if (!pr.isOpen()) {
+            throw new ConflictException("이미 처리된 PR에는 리뷰를 남길 수 없습니다.");
+        }
         if (pr.isWrittenBy(userId)) {
             throw new ForbiddenException("본인이 작성한 PR에는 리뷰를 남길 수 없습니다.");
         }
@@ -85,8 +90,12 @@ public class ReviewService {
     }
 
     // 다른 PR 의 리뷰 번호로 요청하면 없는 리뷰와 같은 404 (URL 의 prId 까지 조건에 넣는 이유)
+    // 검사 순서: 팀·팀원·PR → 처리된 PR(409) → 리뷰 존재(404) → 리뷰 작성자(403)
     private Review findOwnReview(long userId, long repoId, long prId, long reviewId, String action) {
-        validatePr(userId, repoId, prId);
+        Pr pr = validatePr(userId, repoId, prId);
+        if (!pr.isOpen()) {
+            throw new ConflictException("이미 처리된 PR의 리뷰는 " + action + "할 수 없어요.");
+        }
         Review review = reviewRepository.findByPrIdAndReviewId(prId, reviewId)
                 .orElseThrow(() -> new NotFoundException("리뷰를 찾을 수 없습니다."));
         if (!review.isWrittenBy(userId)) {

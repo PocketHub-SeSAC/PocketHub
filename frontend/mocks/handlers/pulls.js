@@ -5,7 +5,7 @@
    - 승인·거부: 작성자가 아닌 팀원, 리뷰 대기일 때만. 1명이 결정하면 확정
    - 승인 → 연결 Task 를 DONE / 거부(사유 필수) → 사유는 PR 의 reply 로 남음, 커밋은 그대로
    - 수정·삭제: 작성자 본인, 리뷰 대기일 때만. 삭제하면 커밋이 풀린다
-   - 리뷰 작성: PR 작성자를 뺀 팀원 누구나 (PR 상태와 상관없이), 4000자 이하
+   - 리뷰 작성: PR 작성자를 뺀 팀원 누구나, 4000자 이하. 처리된(승인·거부) PR 에는 작성·수정·삭제 불가
    - 리뷰 수정·삭제는 리뷰 작성자 본인만 */
 import { nextId } from '@/mocks/db';
 import { fail, ok, created, noContent, publicUser, requireMember, str, toId, now } from '@/mocks/util';
@@ -141,6 +141,7 @@ export const handlers = {
   'pulls.createReview': ({ db, user, params, body }) => {
     const team = requireMember(db, params.teamId, user);
     const p = findPull(db, team, params.prId);
+    if (p.status !== STATUS.WAITING) fail(409, '이미 처리된 PR에는 리뷰를 남길 수 없습니다.');
     if (p.authorId === user.id) fail(403, '본인이 작성한 PR에는 리뷰를 남길 수 없습니다.');
     const content = reviewContent(body);
     const r = { id: nextId(db, 'review'), prId: p.id, authorId: user.id, content, type: 'COMMENT', createdAt: now() };
@@ -157,6 +158,7 @@ export const handlers = {
   'pulls.updateReview': ({ db, user, params, body }) => {
     const team = requireMember(db, params.teamId, user);
     const p = findPull(db, team, params.prId);
+    if (p.status !== STATUS.WAITING) fail(409, '이미 처리된 PR의 리뷰는 수정할 수 없어요.');
     const r = db.reviews.find((x) => x.id === toId(params.reviewId) && x.prId === p.id);
     if (!r) fail(404, '찾을 수 없습니다.');
     if (r.authorId !== user.id) fail(403, '내가 쓴 리뷰만 수정할 수 있어요.');
@@ -167,6 +169,7 @@ export const handlers = {
   'pulls.deleteReview': ({ db, user, params }) => {
     const team = requireMember(db, params.teamId, user);
     const p = findPull(db, team, params.prId);
+    if (p.status !== STATUS.WAITING) fail(409, '이미 처리된 PR의 리뷰는 삭제할 수 없어요.');
     const r = db.reviews.find((x) => x.id === toId(params.reviewId) && x.prId === p.id);
     if (!r) fail(404, '찾을 수 없습니다.');
     if (r.authorId !== user.id) fail(403, '내가 쓴 리뷰만 삭제할 수 있어요.');

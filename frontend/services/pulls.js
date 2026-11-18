@@ -21,8 +21,8 @@ export const PULLS_API = {
 
 /** 승인·거부할 수 있는지: 리뷰 대기 + 내가 작성자가 아님 (백엔드 규칙과 같음. 리뷰어 지정은 아직 없음) */
 export const canDecidePull = (p, me) => p.status === 'waiting' && !!me && p.author?.id !== me.id;
-// 리뷰어 지정 없이 PR 작성자를 뺀 팀원 누구나 리뷰 작성 (PR 상태와 상관없이)
-export const canReviewPull = (p, me) => !!me && p.author?.id !== me.id;
+// 리뷰어 지정 없이 PR 작성자를 뺀 팀원 누구나 리뷰 작성, 리뷰 대기일 때만
+export const canReviewPull = (p, me) => p.status === 'waiting' && !!me && p.author?.id !== me.id;
 /** 수정·삭제할 수 있는지: 리뷰 대기 + 내가 작성자 */
 export const canEditPull = (p, me) => p.status === 'waiting' && !!me && p.author?.id === me.id;
 

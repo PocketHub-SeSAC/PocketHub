@@ -1,5 +1,6 @@
 package com.pockethub.review.service;
 
+import com.pockethub.common.exception.ConflictException;
 import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.pr.domain.Pr;
@@ -87,6 +88,17 @@ class ReviewServiceTest {
             assertThatThrownBy(() -> reviewService.createReview(AUTHOR_ID, REPO_ID, PR_ID, request("셀프 리뷰")))
                     .isInstanceOf(ForbiddenException.class)
                     .hasMessage("본인이 작성한 PR에는 리뷰를 남길 수 없습니다.");
+            verify(reviewRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("승인·거부로 처리된 PR 이면 409, 저장하지 않는다")
+        void decidedPr() {
+            decidePr();
+
+            assertThatThrownBy(() -> reviewService.createReview(OTHER_USER_ID, REPO_ID, PR_ID, request("늦은 리뷰")))
+                    .isInstanceOf(ConflictException.class)
+                    .hasMessage("이미 처리된 PR에는 리뷰를 남길 수 없습니다.");
             verify(reviewRepository, never()).save(any());
         }
 
@@ -184,6 +196,17 @@ class ReviewServiceTest {
         }
 
         @Test
+        @DisplayName("처리된 PR 의 리뷰면 409, 내용은 그대로")
+        void decidedPr() {
+            decidePr();
+
+            assertThatThrownBy(() -> reviewService.updateReview(AUTHOR_ID, REPO_ID, PR_ID, REVIEW_ID, request("고침")))
+                    .isInstanceOf(ConflictException.class)
+                    .hasMessage("이미 처리된 PR의 리뷰는 수정할 수 없어요.");
+            verify(reviewRepository, never()).findByPrIdAndReviewId(anyLong(), anyLong());
+        }
+
+        @Test
         @DisplayName("이 PR 의 리뷰가 아니면(다른 PR 의 리뷰 번호) 404")
         void reviewOfOtherPr() {
             when(reviewRepository.findByPrIdAndReviewId(PR_ID, REVIEW_ID)).thenReturn(Optional.empty());
@@ -234,6 +257,17 @@ class ReviewServiceTest {
         }
 
         @Test
+        @DisplayName("처리된 PR 의 리뷰면 409, 삭제하지 않는다")
+        void decidedPr() {
+            decidePr();
+
+            assertThatThrownBy(() -> reviewService.deleteReview(AUTHOR_ID, REPO_ID, PR_ID, REVIEW_ID))
+                    .isInstanceOf(ConflictException.class)
+                    .hasMessage("이미 처리된 PR의 리뷰는 삭제할 수 없어요.");
+            verify(reviewRepository, never()).delete(any());
+        }
+
+        @Test
         @DisplayName("없는 리뷰면 404")
         void notFound() {
             when(reviewRepository.findByPrIdAndReviewId(PR_ID, REVIEW_ID)).thenReturn(Optional.empty());
@@ -272,6 +306,13 @@ class ReviewServiceTest {
     }
 
     // ---------- 도우미 ----------
+
+    // 10번 PR 을 승인된(처리된) 상태로 바꿔 둔다
+    private void decidePr() {
+        Pr approved = new Pr("PR", "", REPO_ID, null, AUTHOR_ID);
+        approved.approve(OTHER_USER_ID);
+        when(prRepository.findByPrIdAndRepoId(PR_ID, REPO_ID)).thenReturn(Optional.of(approved));
+    }
 
     private static ReviewRequest request(String content) {
         ReviewRequest request = new ReviewRequest();

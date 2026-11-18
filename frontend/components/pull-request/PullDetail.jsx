@@ -4,7 +4,8 @@
 /* - 승인·거부: 작성자가 아닌 팀원, 리뷰 대기일 때만 (리뷰어 지정은 백엔드에 아직 없음). 거부는 사유 필수(PR 의 reply 로 남음)
    - 수정·삭제: 작성자 본인, 리뷰 대기일 때만
    - 승인 → 연결 Task DONE
-   - 리뷰(의견): 리뷰어 지정 없이 PR 작성자를 뺀 팀원 누구나 작성, 작성자는 읽기만. 내가 쓴 리뷰만 수정·삭제 */
+   - 리뷰(의견): 리뷰어 지정 없이 PR 작성자를 뺀 팀원 누구나 작성, 작성자는 읽기만. 내가 쓴 리뷰만 수정·삭제.
+     승인·거부로 처리된 PR 은 리뷰 작성·수정·삭제 불가(읽기만) */
 import { useState } from 'react';
 import Link from 'next/link';
 import { getPull, getReviews, createReview, updateReview, deleteReview, approvePull, rejectPull, canDecidePull, canEditPull, canReviewPull, REVIEWS_ENABLED } from '@/services/pulls';
@@ -127,7 +128,7 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
                 empty={reviews.data && !reviews.data.length} emptyText={canReview ? '아직 리뷰가 없어요. 첫 의견을 남겨 보세요.' : '아직 리뷰가 없어요.'}>
                 <div className='bubbles' id='bubbles'>
                   {(reviews.data || []).map((r) => (
-                    <ReviewItem key={r.id} r={r} mine={r.author?.id === me.id}
+                    <ReviewItem key={r.id} r={r} mine={p.status === 'waiting' && r.author?.id === me.id}
                       onSave={async (rv, content) => { await updateReview(teamId, prId, rv.id, { content }); toast('리뷰를 고쳤어요.'); reviews.reload(true); }}
                       onDelete={async (rv) => { try { await deleteReview(teamId, prId, rv.id); toast('리뷰를 삭제했어요.'); reviews.reload(true); onChanged(); } catch (err) { toast(err.message); } }} />
                   ))}
@@ -143,7 +144,9 @@ export default function PullDetail({ teamId, prId, me, rejectOpen, setRejectOpen
                 <button className='btn' type='submit' disabled={busy}><Icon name='review' size={12} />리뷰 등록</button>
               </form>
               ) : (
-                <p className='sub-hint' style={{ marginTop: 14 }}>내가 만든 PR이라 리뷰는 다른 팀원이 남겨요.</p>
+                <p className='sub-hint' style={{ marginTop: 14 }}>
+                  {p.status !== 'waiting' ? '처리된 PR이라 리뷰를 남기거나 고칠 수 없어요.' : '내가 만든 PR이라 리뷰는 다른 팀원이 남겨요.'}
+                </p>
               )}
             </>
           )}
