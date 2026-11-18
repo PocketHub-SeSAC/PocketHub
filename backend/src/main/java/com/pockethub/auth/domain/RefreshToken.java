@@ -31,4 +31,8 @@ public class RefreshToken {
         this.tokenHash = tokenHash;
         this.expiredAt = expiredAt;
     }
+
+    public boolean isExpired(LocalDateTime now) {
+        return expiredAt != null && expiredAt.isBefore(now);
+    }
 }

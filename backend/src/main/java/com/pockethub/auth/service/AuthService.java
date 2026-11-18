@@ -56,4 +56,55 @@ public class AuthService {
                 .nickname(user.getNickname())
                 .build();
     }
+
+    @Transactional
+    public LoginResponse reissue(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new UnauthorizedException("다시 로그인해주세요");
+        }
+
+        RefreshToken savedToken = refreshTokenRepository.findByTokenHash(refreshTokenProvider.hash(refreshToken))
+                .orElseThrow(() -> new UnauthorizedException("다시 로그인해주세요"));
+
+        if (savedToken.isExpired(LocalDateTime.now())) {
+            throw new UnauthorizedException("다시 로그인해주세요");
+        }
+
+        User user = userRepository.findById(savedToken.getUserId())
+                .orElseThrow(() -> new UnauthorizedException("다시 로그인해주세요"));
+
+        refreshTokenRepository.delete(savedToken);
+
+        return issueTokens(user);
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+
+        refreshTokenRepository.deleteByTokenHash(refreshTokenProvider.hash(refreshToken));
+    }
+
+    private LoginResponse issueTokens(User user) {
+        String accessToken = jwtProvider.createAccessToken(user.getId());
+        String refreshToken = refreshTokenProvider.createToken();
+
+        refreshTokenRepository.save(
+                new RefreshToken(
+                        user.getId(),
+                        refreshTokenProvider.hash(refreshToken),
+                        LocalDateTime.now().plus(refreshTokenProvider.getExpiration())
+                )
+        );
+
+        return LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtProvider.getAccessExpirationSeconds())
+                .memberId(user.getId())
+                .nickname(user.getNickname())
+                .build();
+    }
 }
