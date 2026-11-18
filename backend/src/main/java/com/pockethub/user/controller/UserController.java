@@ -44,7 +44,7 @@ public class UserController {
     @PatchMapping("/me")
     public ResponseEntity<ResponseDTO> changeIcon(
             @AuthenticationPrincipal Long userId,
-            @RequestBody UpdateIconRequest request
+            @Valid @RequestBody UpdateIconRequest request
     ) {
         UserResponse user = userService.updateIcon(userId, request);
 

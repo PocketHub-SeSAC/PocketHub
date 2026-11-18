@@ -1,14 +1,14 @@
 'use client';
 /* [담당 5] PR 알림 배지 (Could) — 별도 알림 API 없이 기존 PR 목록 API(API-030)로 계산 */
 
-/* - review : 그 팀에서 내가 리뷰어로 지정된 "리뷰 대기" PR 수 → 팀 메뉴 PR 탭 숫자 배지
+/* - review : 그 팀에서 내가 승인·거부할 수 있는(내가 쓰지 않은) "리뷰 대기" PR 수 → 팀 메뉴 PR 탭 숫자 배지
    - decided: 내가 만든 PR 중 승인·거부된 것 가운데 아직 PR 탭에서 확인 안 한 것 → 작은 점(●)
               확인 기록은 localStorage 에 PR 별로 (pockethub.prSeen.<내 id>)
    - 화면을 옮길 때와 30초마다 다시 불러온다 */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { getTeams } from '@/services/teams';
-import { getPulls } from '@/services/pulls';
+import { getPulls, canDecidePull } from '@/services/pulls';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 const POLL_MS = 30_000;
@@ -39,7 +39,7 @@ export function PrNotiProvider({ children }) {
       const rows = await Promise.all(teams.map(async (t) => {
         const prs = await getPulls(t.id, undefined, { quiet: true }).catch(() => []);
         return [String(t.id), {
-          review: prs.filter((p) => p.status === 'waiting' && p.reviewers.some((r) => r.id === userId)).length,
+          review: prs.filter((p) => canDecidePull(p, { id: userId })).length,
           decided: prs.filter((p) => p.author?.id === userId && p.status !== 'waiting' && !seen.includes(p.id)).map((p) => p.id),
         }];
       }));

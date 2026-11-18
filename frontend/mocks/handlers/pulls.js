@@ -1,8 +1,10 @@
 /* [담당 5] 목업: PR·리뷰 */
 
-/* - 생성: 내 커밋 중 PR 에 안 묶인 커밋 1개 이상, 리뷰어는 본인 뺀 팀원 1명 이상, Task 1개 → 바로 리뷰 대기
-   - 승인·거부: 지정된 리뷰어만, 리뷰어 중 1명이 결정하면 확정
-   - 승인 → 연결 Task 를 DONE / 거부(사유 필수, 리뷰로 남음) → 그 PR 의 커밋·파일 버전이 목록에서 빠짐
+/* 백엔드(PrService) 규칙에 맞춘다
+   - 생성: 내 커밋 중 PR 에 안 묶인 커밋 1개 이상, Task 1개 → 바로 리뷰 대기 (리뷰어 지정은 선택, 백엔드는 아직 저장 안 함)
+   - 승인·거부: 작성자가 아닌 팀원, 리뷰 대기일 때만. 1명이 결정하면 확정
+   - 승인 → 연결 Task 를 DONE / 거부(사유 필수) → 사유는 PR 의 reply 로 남음, 커밋은 그대로
+   - 수정·삭제: 작성자 본인, 리뷰 대기일 때만. 삭제하면 커밋이 풀린다
    - 리뷰 수정·삭제는 작성자 본인만 */
 import { nextId } from '@/mocks/db';
 import { fail, ok, created, noContent, publicUser, requireMember, isMember, str, toId, now } from '@/mocks/util';
@@ -23,6 +25,7 @@ export const pullSummary = (db, p) => ({
   reviewCount: db.reviews.filter((r) => r.prId === p.id).length,
   createdAt: p.createdAt, decidedAt: p.decidedAt,
   decidedBy: p.decidedById ? publicUser(db, p.decidedById) : null,
+  reply: p.reply || null,
 });
 
 const pullDetail = (db, p) => {
@@ -43,8 +46,12 @@ function findPull(db, team, prId) {
   return p;
 }
 function requireDecider(p, user, what) {
-  if (!p.reviewerIds.includes(user.id)) fail(403, `지정된 리뷰어만 ${what}할 수 있어요.`);
-  if (p.status !== STATUS.WAITING) fail(409, '이미 승인 또는 거부가 결정된 PR이에요.');
+  if (p.status !== STATUS.WAITING) fail(409, '이미 처리된 PR입니다.');
+  if (p.authorId === user.id) fail(403, `본인이 작성한 PR은 ${what}할 수 없습니다.`);
+}
+function requireEditor(p, user, what) {
+  if (p.status !== STATUS.WAITING) fail(409, `이미 처리된 PR은 ${what}할 수 없어요.`);
+  if (p.authorId !== user.id) fail(403, `내가 작성한 PR만 ${what}할 수 있어요.`);
 }
 
 export const handlers = {
@@ -63,7 +70,6 @@ export const handlers = {
       if (c.authorId !== user.id) fail(400, '내가 만든 커밋만 PR에 넣을 수 있어요.');
       if (c.prId) fail(400, `커밋 "${c.message}"은 이미 다른 PR에 연결돼 있어요.`);
     });
-    if (!reviewerIds.length) fail(400, '리뷰어를 1명 이상 골라 주세요.');
     if (reviewerIds.includes(user.id)) fail(400, '본인은 리뷰어로 지정할 수 없어요.');
     if (reviewerIds.some((id) => !isMember(db, team.id, id))) fail(400, '리뷰어는 이 팀의 팀원 중에서 골라 주세요.');
     if (!taskId || !db.tasks.some((t) => t.id === taskId && t.teamId === team.id)) fail(400, '연결할 Task를 1개 골라 주세요.');
@@ -101,11 +107,29 @@ export const handlers = {
     const p = findPull(db, team, params.prId);
     requireDecider(p, user, '거부');
     const reason = str(body?.reason);
-    if (!reason) fail(400, '거부 사유를 입력해 주세요. 사유는 리뷰로 남아요.');
-    p.status = STATUS.CLOSED; p.decidedById = user.id; p.decidedAt = now();
-    db.reviews.push({ id: nextId(db, 'review'), prId: p.id, authorId: user.id, content: reason, type: 'REJECT', createdAt: now() });
-    db.commits.forEach((c) => { if (p.commitIds.includes(c.id)) c.excluded = true; });
+    if (!reason) fail(400, '거부 사유를 입력해 주세요.');
+    p.status = STATUS.CLOSED; p.decidedById = user.id; p.decidedAt = now(); p.reply = reason;
     return ok(pullDetail(db, p));
+  },
+
+  'pulls.update': ({ db, user, params, body }) => {
+    const team = requireMember(db, params.teamId, user);
+    const p = findPull(db, team, params.prId);
+    requireEditor(p, user, '수정');
+    const title = str(body?.title);
+    if (!title) fail(400, 'PR 제목을 입력해 주세요.');
+    p.title = title; p.description = str(body?.description);
+    return ok(pullDetail(db, p));
+  },
+
+  'pulls.remove': ({ db, user, params }) => {
+    const team = requireMember(db, params.teamId, user);
+    const p = findPull(db, team, params.prId);
+    requireEditor(p, user, '삭제');
+    db.commits.forEach((c) => { if (c.prId === p.id) c.prId = null; });
+    db.reviews = db.reviews.filter((r) => r.prId !== p.id);
+    db.pulls = db.pulls.filter((x) => x.id !== p.id);
+    return noContent();
   },
 
   'pulls.createReview': ({ db, user, params, body }) => {

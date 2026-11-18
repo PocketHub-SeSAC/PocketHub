@@ -1,11 +1,17 @@
 /* [담당 5] PR·리뷰 API (API-029 ~ 037) */
-import { request } from './client';
+import { request, USE_MOCK } from './client';
 import { normalizePull, normalizePulls, normalizeReview, normalizeReviews, pullStatusToApi } from './adapter';
+
+/* 리뷰(의견) API-034~037 은 백엔드에 아직 없다 → 실서버에서는 리뷰 영역을 숨긴다.
+   백엔드 review 패키지가 만들어지면 true 로 바꾼다 */
+export const REVIEWS_ENABLED = USE_MOCK;
 
 export const PULLS_API = {
   create:       { key: 'pulls.create',       method: 'POST',   path: '/api/v1/teams/{teamId}/pulls' },                                // API-029
   list:         { key: 'pulls.list',         method: 'GET',    path: '/api/v1/teams/{teamId}/pulls' },                                // API-030 (?status=)
   detail:       { key: 'pulls.detail',       method: 'GET',    path: '/api/v1/teams/{teamId}/pulls/{prId}' },                         // API-031
+  update:       { key: 'pulls.update',       method: 'PATCH',  path: '/api/v1/teams/{teamId}/pulls/{prId}' },                         // PR 수정
+  remove:       { key: 'pulls.remove',       method: 'DELETE', path: '/api/v1/teams/{teamId}/pulls/{prId}' },                         // PR 삭제
   approve:      { key: 'pulls.approve',      method: 'POST',   path: '/api/v1/teams/{teamId}/pulls/{prId}/approve' },                 // API-032
   reject:       { key: 'pulls.reject',       method: 'POST',   path: '/api/v1/teams/{teamId}/pulls/{prId}/reject' },                  // API-033
   createReview: { key: 'pulls.createReview', method: 'POST',   path: '/api/v1/teams/{teamId}/pulls/{prId}/reviews' },                 // API-034
@@ -14,7 +20,12 @@ export const PULLS_API = {
   deleteReview: { key: 'pulls.deleteReview', method: 'DELETE', path: '/api/v1/teams/{teamId}/pulls/{prId}/reviews/{reviewId}' },      // API-037
 };
 
-/** { title, description, commitIds: [], reviewerIds: [], taskId } → 생성되면 바로 리뷰 대기 */
+/** 승인·거부할 수 있는지: 리뷰 대기 + 내가 작성자가 아님 (백엔드 규칙과 같음. 리뷰어 지정은 아직 없음) */
+export const canDecidePull = (p, me) => p.status === 'waiting' && !!me && p.author?.id !== me.id;
+/** 수정·삭제할 수 있는지: 리뷰 대기 + 내가 작성자 */
+export const canEditPull = (p, me) => p.status === 'waiting' && !!me && p.author?.id === me.id;
+
+/** { title, description, commitIds: [], taskId } → 생성되면 바로 리뷰 대기 */
 export const createPull = (teamId, pr) =>
   request(PULLS_API.create, { params: { teamId }, body: pr }).then(normalizePull);
 
@@ -26,9 +37,17 @@ export const getPulls = (teamId, status, { quiet = false } = {}) =>
 export const getPull = (teamId, prId) =>
   request(PULLS_API.detail, { params: { teamId, prId }, handle404: false }).then(normalizePull);
 
+/** 작성자 본인, 리뷰 대기일 때만 제목·설명 수정 */
+export const updatePull = (teamId, prId, { title, description }) =>
+  request(PULLS_API.update, { params: { teamId, prId }, body: { title, description } }).then(normalizePull);
+
+/** 작성자 본인, 리뷰 대기일 때만. 묶였던 커밋은 다시 PR 에 넣을 수 있게 풀린다 */
+export const deletePull = (teamId, prId) =>
+  request(PULLS_API.remove, { params: { teamId, prId }, handle404: false });
+
 export const approvePull = (teamId, prId) => request(PULLS_API.approve, { params: { teamId, prId } }).then(normalizePull);
 
-/** 거부 사유는 필수이고 리뷰로 남는다 */
+/** 거부 사유는 필수이고 PR 의 reply 로 남는다 */
 export const rejectPull = (teamId, prId, { reason }) =>
   request(PULLS_API.reject, { params: { teamId, prId }, body: { reason } }).then(normalizePull);
 
