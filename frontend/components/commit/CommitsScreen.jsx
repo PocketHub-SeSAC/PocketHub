@@ -55,10 +55,9 @@ function CommitSide({ teamId, commitId, me, onClose }) {
             <ul className='items'>
               {(files || []).map((f) => (
                 <li key={f.fileId} className='item'>
-                  <span className={ACTION[f.action][1]} style={{ flex: 'none' }}>{ACTION[f.action][0]}</span>
+                  <span className={ACTION[f.state][1]} style={{ flex: 'none' }}>{ACTION[f.state][0]}</span>
                   <Icon name='file' />
                   <span className='grow'>{f.fileName} <span className='size'>{formatSize(f.size)}</span></span>
-                  <span className={ACTION[f.state]?.[1]}>{ACTION[f.state]?.[0] || f.state}</span>
                   {f.state !== 'DELETE' && (
                     <button className='btn btn-sm' type='button' aria-label={`다운로드`} onClick={() => handleDownloadFile(f)}><Icon name='download' />다운로드</button>
                   )}
