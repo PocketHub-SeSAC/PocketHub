@@ -26,38 +26,14 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ResponseDTO> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse result = authService.login(request);
-
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
-                .httpOnly(true)
-                .path("/api/v1/auth")
-                .sameSite("Strict")
-                .maxAge(refreshTokenProvider.getExpiration())
-                .build();
-
-        ResponseDTO response = new ResponseDTO(
-                Map.of(
-                        "accessToken", result.getAccessToken(),
-                        "tokenType", "Bearer",
-                        "expiresIn", result.getExpiresIn(),
-                        "memberId", result.getMemberId(),
-                        "nickname", result.getNickname()
-                ),
-                "로그인에 성공했습니다"
-        );
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .body(response);
+        return tokenResponse(authService.login(request), "로그인에 성공했습니다");
     }
 
     @PostMapping("/reissue")
     public ResponseEntity<ResponseDTO> reissue(
             @CookieValue(name = "refreshToken", required = false) String refreshToken
     ) {
-        LoginResponse result = authService.reissue(refreshToken);
-
-        return tokenResponse(result, "토큰이 재발급되었습니다");
+        return tokenResponse(authService.reissue(refreshToken), "토큰이 재발급되었습니다");
     }
 
     @PostMapping("/logout")
@@ -66,11 +42,9 @@ public class AuthController {
     ) {
         authService.logout(refreshToken);
 
-        ResponseDTO response = new ResponseDTO(HttpStatus.OK, "로그아웃되었습니다");
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO).toString())
-                .body(response);
+                .body(new ResponseDTO(HttpStatus.OK, "로그아웃되었습니다"));
     }
 
     private ResponseEntity<ResponseDTO> tokenResponse(LoginResponse result, String message) {
