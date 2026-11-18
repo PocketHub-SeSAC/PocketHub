@@ -1,7 +1,9 @@
 /* 공통 API 클라이언트: 목업/실서버 전환, 토큰 헤더, 401·404 공통 처리.
    응답 풀기·오류 문구는 adapter.js 에 모아 둔다 */
 import { unwrap, toApiError } from './adapter';
-import { getToken, clearToken } from './token';
+import { getToken, setToken, clearToken } from './token';
+
+const REISSUE_PATH = '/api/v1/auth/reissue';
 
 // NEXT_PUBLIC_USE_MOCK=true : 브라우저 안 목업 서버(mocks/)로 보낸다
 // NEXT_PUBLIC_USE_MOCK=false: NEXT_PUBLIC_API_URL + 경로로 실제 요청
@@ -36,6 +38,26 @@ function filenameFrom(disposition) {
   return plain ? plain[1] : '';
 }
 
+/* 액세스 토큰이 만료되면 쿠키의 리프레시 토큰으로 새 토큰을 받는다.
+   여러 요청이 동시에 401 을 받아도 재발급은 한 번만 보낸다 */
+let reissuing = null;
+function reissueToken() {
+  if (USE_MOCK) return Promise.resolve(false);
+  if (!reissuing) {
+    reissuing = fetch(BASE_URL + REISSUE_PATH, { method: 'POST', credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) return false;
+        const data = unwrap(await r.json());
+        if (!data || !data.accessToken) return false;
+        setToken(data.accessToken);
+        return true;
+      })
+      .catch(() => false)
+      .finally(() => { reissuing = null; });
+  }
+  return reissuing;
+}
+
 /**
  * @param route   { key, method, path, auth? }  ← 각 도메인 api 파일에 정의
  * @param options params(경로 값), query, body(객체 또는 FormData), blob(true면 파일 받기),
@@ -44,7 +66,7 @@ function filenameFrom(disposition) {
  *                         백엔드는 페이지 정보를 응답 최상위의 pageInfo 객체(data 밖)에 넣는다.
  *                         pageInfo 가 없으면 최상위 필드(목업)에서 읽는다. 기본 false 는 예전처럼 data 만 돌려준다)
  */
-export async function request(route, { params, query, body, blob = false, handle404 = true, withMeta = false } = {}) {
+export async function request(route, { params, query, body, blob = false, handle404 = true, withMeta = false, retried = false } = {}) {
   const path = buildPath(route.path, params);
   const headers = {};
   if (route.auth !== false) {
@@ -63,6 +85,7 @@ export async function request(route, { params, query, body, blob = false, handle
       const r = await fetch(BASE_URL + path + buildQuery(query), {
         method: route.method,
         headers,
+        credentials: 'include',
         body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
       });
       if (blob && r.ok) {
@@ -86,6 +109,10 @@ export async function request(route, { params, query, body, blob = false, handle
       return { data: unwrap(res.data), meta: { page: info.page, size: info.size, totalPages: info.totalPages, totalElements: info.totalElements } };
     }
     return unwrap(res.data);
+  }
+  // 토큰 만료: 한 번만 재발급을 시도하고, 성공하면 같은 요청을 다시 보낸다
+  if (res.status === 401 && route.auth !== false && !retried && await reissueToken()) {
+    return request(route, { params, query, body, blob, handle404, withMeta, retried: true });
   }
   const err = toApiError(res.status, res.data);
   if (res.status === 401 && route.auth !== false) {
