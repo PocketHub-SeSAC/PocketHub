@@ -6,7 +6,7 @@
    - 삭제도 커밋 메시지를 받는다 */
 import { useState } from 'react';
 import Link from 'next/link';
-import { getFiles, getFile, getCommits, downloadFile, deleteFile } from '@/services/files';
+import { getFiles, getFile, getCommitsPage, downloadFile, deleteFile } from '@/services/files';
 import { saveBlob } from '@/services/client';
 import { useTeam } from '@/components/team/TeamShell';
 import useAsync from '@/hooks/useAsync';
@@ -55,7 +55,11 @@ function DeleteFileModal({ teamId, file, onClose, onDone }) {
   );
 }
 
+/** 업로더는 { id, nickname } 뿐이라 팀원 목록에서 같은 id 를 찾아 프로필 아이콘까지 쓴다 (못 찾으면 그대로) */
+const withProfile = (members, u) => (u && (members || []).find((m) => String(m.id) === String(u.id))) || u;
+
 function FileSide({ teamId, fileId, me, onClose, onDelete }) {
+  const { members } = useTeam();
   const toast = useToast();
   const f = useAsync(() => getFile(teamId, fileId), [teamId, fileId]);
   const handleDownload = async () => {
@@ -76,7 +80,7 @@ function FileSide({ teamId, fileId, me, onClose, onDelete }) {
                 <dt>파일 크기</dt><dd>{formatSize(f.data.size)}</dd>
                 <dt>버전</dt><dd>v{f.data.version}</dd>
                 <dt>업로드 날짜</dt><dd>{formatDate(f.data.uploadedAt)}</dd>
-                <dt>올린 사람</dt><dd><Who user={f.data.uploader} me={mine} /></dd>
+                <dt>올린 사람</dt><dd><Who user={withProfile(members, f.data.uploader)} me={mine} /></dd>
               </dl>
               <div className='rowbtns'>
                 <button className='btn' type='button' onClick={handleDownload}><Icon name='download' />다운로드</button>
@@ -106,10 +110,11 @@ function FileSide({ teamId, fileId, me, onClose, onDelete }) {
 }
 
 export default function FilesScreen() {
-  const { teamId, me } = useTeam();
+  const { teamId, me, members } = useTeam();
   const [q, setQuery] = useQuery();
   const files = useAsync(() => getFiles(teamId), [teamId]);
-  const commits = useAsync(() => getCommits(teamId, {pgae : 0}), [teamId]);
+  // 목록은 필요 없고 툴바에 표시할 전체 커밋 수(totalElements)만 필요해서 size: 1 로 요청
+  const commits = useAsync(() => getCommitsPage(teamId, { page: 0, size: 1 }), [teamId]);
   const fileId = q.get('file');
   const modal = q.get('modal');
   const selected = (files.data || []).find((f) => String(f.id) === fileId);
@@ -117,7 +122,7 @@ export default function FilesScreen() {
 
   return (
     <>
-      <FilesToolbar teamId={teamId} active='files' fileCount={files.data?.length} commitCount={commits.data?.length}
+      <FilesToolbar teamId={teamId} active='files' fileCount={files.data?.length} commitCount={commits.data?.totalElements}
         onUpload={() => setQuery({ modal: 'upload' })} />
       <div className={`split ${fileId ? 'has-side' : ''}`}>
         <div className='panel'>
@@ -132,7 +137,7 @@ export default function FilesScreen() {
                 <span className={`nm ${ACTION[f.type]?.[1]}`}>{ACTION[f.type]?.[0] || f.type}</span>
                 <span className='nm'><span>{f.name}</span>{f.version > 1 && <span className='badge ver'>v{f.version}</span>}</span>
                 <span className='muted'>{formatSize(f.size)}</span>
-                <Who user={f.uploader} />
+                <Who user={withProfile(members, f.uploader)} />
                 <span className='muted'>{formatDate(f.uploadedAt)}</span>
               </a>
             ))}

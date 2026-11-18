@@ -32,4 +32,8 @@ public class User {
         this.password = password;
         this.nickname = nickname;
     }
+
+    public void updateIcon(String icon) {
+        this.icon = icon;
+    }
 }

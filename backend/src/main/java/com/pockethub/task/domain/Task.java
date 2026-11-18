@@ -65,6 +65,12 @@ public class Task {
             this.endAt = endAt;
         }
     }
+
+    // 담당자를 바꾼다 (null 이면 담당자 해제)
+    public void changeManager(Long managerId) {
+        this.managerId = managerId;
+    }
+
     // 상태만 바꾼다 (TODO / DOING / DONE)
     public void changeStatus(TaskStatus status) {
         this.status = status;

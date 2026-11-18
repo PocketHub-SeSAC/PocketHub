@@ -19,6 +19,14 @@ import { NewTaskModal, TaskSide, DeleteTaskModal } from './TaskPanels';
 
 const COLS = ['TODO', 'DOING', 'DONE'];
 
+/* 백엔드는 담당자를 assigneeId 로만 준다(→ assignee = {id}). 팀원 목록에서 닉네임·아이콘을 채운다.
+   못 찾으면 받은 값을 그대로 둔다 */
+const withAssignee = (t, members) => {
+  if (!t.assignee || t.assignee.nickname) return t;
+  const m = (members || []).find((x) => String(x.id) === String(t.assignee.id));
+  return m ? { ...t, assignee: { ...t.assignee, nickname: m.nickname, profileIcon: m.profileIcon } } : t;
+};
+
 function Note({ t, selected, onOpen, onDragStart, onDragEnd, onHover, pop = false, style }) {
   return (
     <a className={`pn n-${t.status.toLowerCase()} ${selected ? 'sel' : ''} ${pop ? 'pn-pop' : ''}`} style={style}
@@ -49,7 +57,7 @@ export default function TasksScreen() {
   const dragging = useRef(null);
   const taskId = q.get('task');
   const modal = q.get('modal');
-  const list = tasks.data || [];
+  const list = (tasks.data || []).map((t) => withAssignee(t, members));
   const selected = list.find((t) => String(t.id) === taskId);
   const refresh = () => { tasks.reload(true); setVersion((x) => x + 1); };
 
@@ -69,7 +77,8 @@ export default function TasksScreen() {
   // PR 승인으로 DONE 이 된 Task 를 되돌릴 때만 한 번 확인한다
   const handleMove = async (t, status) => {
     if (!t || t.status === status) return;
-    if (t.status === 'DONE' && t.pullCount > 0) {
+    // pullCount 가 없으면(백엔드) 연결 PR 이 있는지 모르므로 직접 불러와 확인한다
+    if (t.status === 'DONE' && (t.pullCount === undefined || t.pullCount > 0)) {
       try {
         const prs = await getTaskPulls(teamId, t.id);
         if (prs.some((p) => p.status === 'approved')) { setConfirm({ t, status }); return; }

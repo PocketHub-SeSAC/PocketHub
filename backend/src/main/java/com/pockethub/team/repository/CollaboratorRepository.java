@@ -11,9 +11,15 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, Long
 
     List<Collaborator> findAllByRepo(Repo repo);
 
+    List<Collaborator> findAllByUser(User user);
+
     boolean existsByRepoAndUser(Repo repo, User user);
 
     Optional<Collaborator> findByRepoAndUser(Repo repo, User user);
 
+
+    long countByRepo(Repo repo);   // 이 팀의 팀원 수
+
     boolean existsByRepoIdAndUserId(Long repoId, Long userId);
+
 }
