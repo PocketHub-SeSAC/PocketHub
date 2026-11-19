@@ -1,0 +1,2 @@
+/* 스크린샷 비교 때만 적용: 2.4초 뒤 사라지는 알림은 찍는 시점에 따라 달라지므로 가린다 */
+#toast { visibility: hidden !important; }

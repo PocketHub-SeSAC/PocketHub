@@ -26,7 +26,8 @@ CREATE TABLE repository (
   description VARCHAR(1000) NULL,
   created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (repo_id),
-  CONSTRAINT fk_repository_user FOREIGN KEY (user_id) REFERENCES `user` (user_id)
+  CONSTRAINT fk_repository_user FOREIGN KEY (user_id) REFERENCES `user` (user_id),
+  CONSTRAINT uk_repository_name UNIQUE (repo_name)
 ) ENGINE=InnoDB;
 
 -- 팀원-저장소 관계
@@ -81,7 +82,7 @@ CREATE TABLE pr (
 
 -- 커밋: pr_id는 NULL 허용, PR 삭제 시 NULL
 CREATE TABLE `commit` (
-  commit_id  BIGINT       NOT NULL AUTO_INCREMENT,
+  commit_id  VARCHAR(45)  NOT NULL,
   repo_id    BIGINT       NOT NULL,
   pr_id      BIGINT       NULL,
   message    VARCHAR(500) NOT NULL,
@@ -98,11 +99,10 @@ CREATE TABLE `file` (
   file_id       BIGINT        NOT NULL AUTO_INCREMENT,
   file_path     VARCHAR(1000) NOT NULL,
   original_name VARCHAR(200)  NOT NULL,
-  saved_name    VARCHAR(200)  NOT NULL,
   state         VARCHAR(45)   NOT NULL,                -- ADD, UPDATE, DELETE
   repo_id       BIGINT        NOT NULL,
   size          FLOAT         NOT NULL DEFAULT 0,      -- KB 단위
-  commit_id     BIGINT        NOT NULL,
+  commit_id     VARCHAR(45)   NOT NULL,
   is_latest     TINYINT(1)    NOT NULL DEFAULT 0,
   prev_id       BIGINT        NULL,                    -- UPDATE/DELETE 파일의 이전 상태 파일
   PRIMARY KEY (file_id),
