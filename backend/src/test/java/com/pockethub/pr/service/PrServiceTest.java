@@ -7,6 +7,7 @@ import com.pockethub.common.exception.ConflictException;
 import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.file.domain.File;
+import com.pockethub.file.service.FileService;
 import com.pockethub.pr.domain.Pr;
 import com.pockethub.pr.domain.PrState;
 import com.pockethub.pr.dto.PrCreateRequest;
@@ -64,6 +65,8 @@ class PrServiceTest {
     private CommitRepository commitRepository;
     @Mock
     private TaskRepository taskRepository;
+    @Mock
+    private FileService fileService;
     @InjectMocks
     private PrService prService;
 
