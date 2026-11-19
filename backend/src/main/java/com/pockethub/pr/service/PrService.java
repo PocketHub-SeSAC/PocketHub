@@ -7,16 +7,10 @@ import com.pockethub.common.exception.ForbiddenException;
 import com.pockethub.common.exception.NotFoundException;
 import com.pockethub.common.validation.ValidationRules;
 import com.pockethub.file.domain.File;
+import com.pockethub.file.service.FileService;
 import com.pockethub.pr.domain.Pr;
 import com.pockethub.pr.domain.PrState;
-import com.pockethub.pr.dto.PrCreateRequest;
-import com.pockethub.pr.dto.PrDetailResponse;
-import com.pockethub.pr.dto.PrMemberResponse;
-import com.pockethub.pr.dto.PrRejectRequest;
-import com.pockethub.pr.dto.PrSummaryResponse;
-import com.pockethub.pr.dto.PrTaskRequest;
-import com.pockethub.pr.dto.PrTaskResponse;
-import com.pockethub.pr.dto.PrUpdateRequest;
+import com.pockethub.pr.dto.*;
 import com.pockethub.pr.repository.PrRepository;
 import com.pockethub.pr.repository.PrRepository.MemberRow;
 import com.pockethub.pr.repository.PrRepository.ReviewCountRow;
@@ -26,12 +20,7 @@ import com.pockethub.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -44,10 +33,13 @@ public class PrService {
     private final CommitRepository commitRepository;
     private final TaskRepository taskRepository;
 
-    public PrService(PrRepository prRepository, CommitRepository commitRepository, TaskRepository taskRepository) {
+    private final FileService fileService;
+
+    public PrService(PrRepository prRepository, CommitRepository commitRepository, TaskRepository taskRepository, FileService fileService) {
         this.prRepository = prRepository;
         this.commitRepository = commitRepository;
         this.taskRepository = taskRepository;
+        this.fileService = fileService;
     }
 
     @Transactional
@@ -134,6 +126,8 @@ public class PrService {
     public PrDetailResponse rejectPr(long userId, long repoId, long prId, PrRejectRequest request) {
         Pr pr = findDecidablePr(userId, repoId, prId, "거부");
         pr.reject(userId, validateReason(request.getReason()));
+        List<Commit> commits = prRepository.findCommitsByPrId(prId);
+        StringBuilder sb = fileService.revertLatestFile(commits.stream().map(Commit::getCommitId).toList());
         return toDetail(pr, prRepository.findCommitsByPrId(prId));
     }
 
