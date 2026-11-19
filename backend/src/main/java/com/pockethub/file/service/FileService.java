@@ -10,6 +10,9 @@ import com.pockethub.file.dto.FileDTO;
 import com.pockethub.file.dto.FileDownloadRes;
 import com.pockethub.file.dto.FileState;
 import com.pockethub.file.repository.FileRepository;
+import com.pockethub.pr.domain.Pr;
+import com.pockethub.pr.domain.PrState;
+import com.pockethub.pr.repository.PrRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,12 +35,14 @@ import java.util.zip.ZipOutputStream;
 
 @Service
 public class FileService {
-    private FileRepository fileRepository;
+    private final FileRepository fileRepository;
+    private final PrRepository prRepository;
 
     private final Path uploadRoot;
 
-    public FileService(FileRepository fileRepository, @Value("${upload.dir:uploads}") String uploadDir) {
+    public FileService(FileRepository fileRepository, PrRepository prRepository, @Value("${upload.dir:uploads}") String uploadDir) {
         this.fileRepository = fileRepository;
+        this.prRepository = prRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -249,5 +254,54 @@ public class FileService {
         }
 
         return new FileDTO(file);
+    }
+
+    // 작업이 취소되지 않을 정도의 오류가 있을 경우 메세지만 반환
+    @Transactional
+    public StringBuilder revertLatestFile(List<String> commitIds) {
+        StringBuilder errMsg = null;
+
+        List<File> files = prRepository.findFilesByCommitIds(commitIds);
+        for(int i = 0; i < files.size(); i++) {
+            File file = files.get(i);
+            // 1. 최신 파일인가 체크
+            if(!file.getIsLatest()) continue;
+            file.setIsLatest(false);
+
+            // 2. 최신 파일일 경우 이전 상태 파일이 존재하는가 확인
+            if(file.getPrevId() != null) {
+                File prevFile = fileRepository.findById(file.getPrevId())
+                        .orElse(null);
+                if(prevFile == null) {
+                    if(errMsg == null) errMsg = new StringBuilder();
+                    errMsg.append(file.getOriginalName()).append("의 기록된 이전 파일이 존재하지 않습니다. ");
+                    continue;
+                }
+
+                if(prevFile.getCommit().getPrId() == null) {
+                    prevFile.setIsLatest(true);
+                    continue;
+                }
+
+                // 3. 이전 파일의 PR 승인 여부 상태 확인
+                Pr pr = prRepository.findById(prevFile.getCommit().getPrId())
+                        .orElse(null);
+                if(pr == null) {
+                    if(errMsg == null) errMsg = new StringBuilder();
+                    errMsg.append(file.getOriginalName()).append("의 기록된 이전 파일을 저장한 PR이 존재하지 않습니다. ");
+                    continue;
+                }
+
+                // 4. 이전 파일이 승인 되어 있으면 최신 파일 상태로 바꾸고 종료
+                // 5. 이전 파일이 거부 되어 있으면 체크해야하는 파일 목록에 추가 (체크되기 위해서 최신 상태를 true 로 임시 바꿈)
+                prevFile.setIsLatest(true);
+
+                if(pr.getState().equals(PrState.DENIED)) {
+                    files.add(prevFile);
+                }
+            }
+        }
+
+        return errMsg;
     }
 }
