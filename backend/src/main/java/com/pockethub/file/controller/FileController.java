@@ -47,7 +47,7 @@ public class FileController {
     }
 
     @GetMapping("/{fileId}")
-    public ResponseEntity<ResponseDTO> findCommitDetail(
+    public ResponseEntity<ResponseDTO> findFileDetail(
             @PathVariable("teamId") long repoId,
             @PathVariable("fileId") long fileId
     ) {
